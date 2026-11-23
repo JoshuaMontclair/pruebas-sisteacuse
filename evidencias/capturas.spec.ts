@@ -116,3 +116,4 @@ for (const [nombre, archivo] of [
 		await page.screenshot({ path: ruta(nombre) });
 	});
 }
+

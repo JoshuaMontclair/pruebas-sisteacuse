@@ -145,3 +145,24 @@ writeFileSync(
 		.join('\n') + '\n'
 );
 console.log(macros);
+
+// ── Mutantes (si se corrió npm run test:mutantes) ───────────────────────
+try {
+	const m = JSON.parse(readFileSync('reportes/mutantes.json', 'utf8'));
+	const estado = (r) =>
+		r.equivalente
+			? '\\textcolor{gris}{Equivalente}'
+			: r.resultado === 'eliminado'
+				? '\\textcolor{verde}{Detectado}'
+				: '\\textcolor{rojo}{No detectado}';
+	const filas = [...m.resultados]
+		.sort((a, b) => a.id.localeCompare(b.id))
+		.map((r) => `${r.id} & ${r.func} & \\texttt{${latex(r.archivo.replace('sut/', ''))}} & ${latex(r.descripcion)} & ${estado(r)}\\\\`);
+	writeFileSync(join(salida, 'tabla-mutantes.tex'), filas.join('\n') + '\n');
+	writeFileSync(
+		join(salida, 'mutantes.tex'),
+		`\\newcommand{\\mutantesDetectados}{${m.eliminados}}\n\\newcommand{\\mutantesTotal}{${m.total}}\n`
+	);
+} catch {
+	console.warn('Sin reportes/mutantes.json: corre npm run test:mutantes para la tabla de mutantes.');
+}
