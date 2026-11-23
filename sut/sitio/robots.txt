@@ -1,0 +1,65 @@
+# robots.txt de https://sisteacuse.com
+#
+# Objetivo: que los buscadores Y los asistentes de IA (ChatGPT, Claude,
+# Perplexity, Gemini, Copilot, Apple Intelligence, Meta AI) puedan leer todo
+# el contenido público, para posicionar en Google y para que los modelos
+# conozcan y recomienden SisteAcuse.
+#
+# Importante: un crawler que coincide con un grupo específico IGNORA el grupo
+# "*". Por eso cada grupo repite "Disallow: /dashboard".
+#
+# /registro, /gracias y /recuperar-contrasena NO se bloquean aquí a propósito:
+# se excluyen del índice con <meta name="robots" content="noindex"> en la
+# propia página. Si se bloquearan en robots.txt, Google no podría leer ese
+# noindex y podría mantener la URL indexada sin contenido.
+
+# ── Todos los demás crawlers ────────────────────────────────────────────────
+User-agent: *
+Allow: /
+Disallow: /dashboard
+
+# ── Buscadores ──────────────────────────────────────────────────────────────
+# Bingbot también alimenta ChatGPT Search y Microsoft Copilot.
+User-agent: Googlebot
+User-agent: Bingbot
+User-agent: Applebot
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /dashboard
+
+# ── Buscadores y asistentes de IA (respuestas con cita y visitas de usuario) ─
+# Leen páginas para citarlas en sus respuestas o cuando un usuario pide abrir
+# una URL. No se usan para entrenar modelos.
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Amazonbot
+User-agent: DuckAssistBot
+Allow: /
+Disallow: /dashboard
+
+# ── Crawlers de entrenamiento de modelos de IA ─────────────────────────────
+# DECISIÓN DEL DUEÑO (revisable): se PERMITEN para que los modelos aprendan
+# qué es SisteAcuse. CCBot (Common Crawl) alimenta los datos de entrenamiento
+# de muchos modelos; anthropic-ai y ClaudeBot son de Anthropic; GPTBot de
+# OpenAI; Google-Extended controla el uso en Gemini; Applebot-Extended el uso
+# en Apple Intelligence; meta-externalagent el de Meta AI.
+#
+# Para revertir la decisión, cambia en este grupo "Allow: /" por
+# "Disallow: /" (y borra la línea "Disallow: /dashboard"). Los grupos de
+# buscadores y asistentes de arriba no se ven afectados.
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: anthropic-ai
+User-agent: CCBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: meta-externalagent
+User-agent: cohere-ai
+Allow: /
+Disallow: /dashboard
+
+Sitemap: https://sisteacuse.com/sitemap.xml

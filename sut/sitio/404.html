@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex, nofollow" />
+		<meta name="color-scheme" content="dark light" />
+		<meta name="theme-color" content="#eef3f7" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#0e1824" media="(prefers-color-scheme: dark)" />
+		<title>Página no encontrada | SisteAcuse</title>
+		<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+		<!--
+			Este archivo es el que sirve Cloudflare Pages en una URL que no existe. Es un HTML
+			SUELTO: no pasa por SvelteKit ni carga el bundle, así que trae en línea las fichas
+			de los DOS temas y las piezas del sistema de diseño que usa (src/app.css: botón con
+			relieve, acento de titular, tramo con resplandor y grano; el teclado de
+			src/lib/components/error/TecladoError.svelte) y el logo. Si cambian allá, se copian
+			aquí a mano. La versión dentro de la app es src/routes/+error.svelte: mismos textos.
+			Sin medición ni cookies: no carga ningún script de terceros.
+		-->
+		<script>
+			// TEMA, antes de pintar (sin parpadeo): el mismo guion de src/app.html. La elección
+			// guardada ('siste-theme' en localStorage) o, si no hay, la del sistema. Sin JS manda
+			// prefers-color-scheme (bloque @media de abajo).
+			(() => {
+				let tema = '';
+				try {
+					tema = localStorage.getItem('siste-theme') || '';
+				} catch {}
+				if (tema !== 'light' && tema !== 'dark')
+					tema = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+				document.documentElement.dataset.theme = tema;
+			})();
+		</script>
+		<style>
+			@font-face {
+				font-family: 'Ubuntu';
+				font-weight: 700;
+				font-display: optional;
+				src: url(/fonts/ubuntu-latin-700.v1.woff2) format('woff2');
+			}
+			@font-face {
+				font-family: 'Work Sans';
+				font-weight: 400 700;
+				font-display: optional;
+				src: url(/fonts/work-sans-latin-wght.v1.woff2) format('woff2');
+			}
+			/* `optional` y no `swap`: esta página la piden sobre todo robots y URL viejas. Si
+			   las fuentes ya están en caché (visitante del sitio) se usan; si no, se pinta con
+			   el respaldo y NO se cambia de fuente a la vista.
+			   Respaldo: fuentes del sistema por familia, nunca reglas con src local() (ver src/app.css). */
+			/* ── Fichas: las de src/app.css que usa esta página, en los dos temas ── */
+			:root {
+				color-scheme: light;
+				--fondo: #eef3f7;
+				--fondo-hondo: #e1e9ef;
+				--fondo-pie: #d3dde6;
+				--tarjeta: #ffffff;
+				--elevado: #f3f6f9;
+				--tinta: #0e1824;
+				--cuerpo: #27323d;
+				--apoyo: #4c5966;
+				--borde: #c2cdd8;
+				--borde-campo: #7b8a98;
+				--losa: #a9b7c4;
+				--hundido: rgb(14 24 36 / 0.055);
+				--hundido-filo: rgb(14 24 36 / 0.1);
+				--boton-fondo: #ffffff;
+				--boton-brillo: transparent;
+				--foco: #005f78;
+				--cabecera-fondo: rgb(238 243 247 / 0.86);
+				--ambar-titular: var(--tinta);
+				--ambar-marca: var(--ambar);
+				--rojo-texto: #ac2023;
+				--brillo-a: rgb(13 180 220 / 0.3);
+				--brillo-b: rgb(56 142 224 / 0.17);
+				--brillo-ambar: rgb(245 180 22 / 0.2);
+				--brillo-verde: rgb(65 215 140 / 0.22);
+				--grano-tinta: #0e1824;
+				--grano-fuerza: 0.1;
+			}
+			:root[data-theme='dark'],
+			.oscura {
+				color-scheme: dark;
+				--fondo: #0e1824;
+				--fondo-hondo: #0a121b;
+				--fondo-pie: #070d14;
+				--tarjeta: #131d29;
+				--elevado: #1b2a3b;
+				--tinta: #f4f8fb;
+				--cuerpo: #c9d4de;
+				--apoyo: #9aa9b7;
+				--borde: #2a394a;
+				--borde-campo: #5f6f7f;
+				--losa: #05090d;
+				--hundido: rgb(0 0 0 / 0.3);
+				--hundido-filo: #1f2a35;
+				--boton-fondo: #1d2d3f;
+				--boton-brillo: rgb(255 255 255 / 0.09);
+				--foco: #4fd3f2;
+				--cabecera-fondo: rgb(14 24 36 / 0.9);
+				--ambar-titular: #f5b416;
+				--ambar-marca: transparent;
+				--rojo-texto: #ff8083;
+				--brillo-a: rgb(20 128 184 / 0.5);
+				--brillo-b: rgb(16 86 140 / 0.42);
+				--brillo-ambar: rgb(245 180 22 / 0.09);
+				--brillo-verde: rgb(65 215 140 / 0.1);
+				--grano-tinta: #ffffff;
+				--grano-fuerza: 0.12;
+			}
+			/* Sin JS no hay data-theme: manda el sistema. MISMOS valores que el bloque oscuro. */
+			@media (prefers-color-scheme: dark) {
+				:root:not([data-theme]) {
+					color-scheme: dark;
+					--fondo: #0e1824;
+					--fondo-hondo: #0a121b;
+					--fondo-pie: #070d14;
+					--tarjeta: #131d29;
+					--elevado: #1b2a3b;
+					--tinta: #f4f8fb;
+					--cuerpo: #c9d4de;
+					--apoyo: #9aa9b7;
+					--borde: #2a394a;
+					--borde-campo: #5f6f7f;
+					--losa: #05090d;
+					--hundido: rgb(0 0 0 / 0.3);
+					--hundido-filo: #1f2a35;
+					--boton-fondo: #1d2d3f;
+					--boton-brillo: rgb(255 255 255 / 0.09);
+					--foco: #4fd3f2;
+					--cabecera-fondo: rgb(14 24 36 / 0.9);
+					--ambar-titular: #f5b416;
+					--ambar-marca: transparent;
+					--rojo-texto: #ff8083;
+					--brillo-a: rgb(20 128 184 / 0.5);
+					--brillo-b: rgb(16 86 140 / 0.42);
+					--brillo-ambar: rgb(245 180 22 / 0.09);
+					--brillo-verde: rgb(65 215 140 / 0.1);
+					--grano-tinta: #ffffff;
+					--grano-fuerza: 0.12;
+				}
+			}
+			/* Lo que NO cambia con el tema. */
+			:root {
+				--cian: #0db4dc;
+				--cian-losa: #0888a8;
+				--ambar: #f5b416;
+				--ambar-losa: #c98802;
+				--verde: #41d78c;
+				--verde-losa: #1f9e5e;
+				--sobre-acento: #0e1824;
+				--sobre-primario: #ffffff;
+				--grano: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .6 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+				--f-titulo: 'Ubuntu', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+				--f-texto:
+					'Work Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+				--canal: clamp(1.25rem, 5.2vw, 2rem);
+				--ancho: 68rem;
+				--cabecera: 4rem;
+				--curva-relieve: cubic-bezier(0.8, -0.4, 0.5, 1);
+			}
+			@media (min-width: 68.75rem) {
+				:root {
+					--cabecera: 4.5rem;
+				}
+			}
+			@media (min-width: 1920px) {
+				html {
+					font-size: 106.25%;
+				}
+			}
+			@media (min-width: 2400px) {
+				html {
+					font-size: 125%;
+				}
+			}
+
+			*,
+			*::before,
+			*::after {
+				box-sizing: border-box;
+			}
+			html {
+				-webkit-text-size-adjust: 100%;
+				background: var(--fondo);
+			}
+			body {
+				display: flex;
+				flex-direction: column;
+				min-height: 100vh;
+				min-height: 100dvh;
+				margin: 0;
+				font: 400 1rem/1.625 var(--f-texto);
+				color: var(--cuerpo);
+				background: var(--fondo);
+				-webkit-font-smoothing: antialiased;
+				overflow-x: clip;
+			}
+			h1,
+			p {
+				margin: 0;
+			}
+			a {
+				color: inherit;
+				text-decoration: none;
+			}
+			button {
+				font: inherit;
+				color: inherit;
+				cursor: pointer;
+			}
+			:focus-visible {
+				outline: 2px solid var(--foco);
+				outline-offset: 3px;
+				border-radius: 6px;
+			}
+			.oscura {
+				color: var(--cuerpo);
+			}
+			.contenedor {
+				width: min(var(--ancho), 100% - 2 * var(--canal));
+				margin-inline: auto;
+			}
+			.saltar {
+				position: absolute;
+				left: var(--canal);
+				top: 0.5rem;
+				z-index: 1000;
+				padding: 0.625rem 1rem;
+				border: 1px solid var(--cian-losa);
+				border-radius: 10px;
+				background: var(--cian);
+				color: var(--sobre-acento);
+				font-weight: 600;
+				transform: translateY(-200%);
+			}
+			.saltar:focus-visible {
+				transform: none;
+			}
+
+			/* ── Botón con relieve ── */
+			.boton {
+				--relieve-alto: 2px;
+				--losa-c: var(--losa);
+				--ahora: var(--relieve-alto);
+				position: relative;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				min-height: 3rem;
+				padding: 0.5rem 1.25rem;
+				border: 1px solid var(--losa-c);
+				border-radius: 10px;
+				background: var(--boton-fondo);
+				background-clip: padding-box;
+				color: var(--tinta);
+				font: 600 1rem/1.15 var(--f-texto);
+				text-align: center;
+				white-space: nowrap;
+				box-shadow:
+					0 var(--ahora) 0 0 var(--losa-c),
+					inset 0 1px 0 0 var(--boton-brillo);
+				transform: translateY(calc(-1 * var(--ahora)));
+				transition:
+					transform 120ms var(--curva-relieve),
+					box-shadow 120ms var(--curva-relieve);
+			}
+			.boton::after {
+				content: '';
+				position: absolute;
+				z-index: -1;
+				inset: -1px;
+				border-radius: inherit;
+				transform: translateY(var(--ahora));
+				transition: inherit;
+			}
+			.boton--primario {
+				--losa-c: var(--cian-losa);
+				--boton-brillo: rgb(255 255 255 / 0.3);
+				background-color: var(--cian);
+				color: var(--sobre-primario);
+			}
+			.boton--grande {
+				--relieve-alto: 3px;
+				min-height: 3.375rem;
+				padding-inline: 1.5rem;
+				font-size: 1.0625rem;
+				border-radius: 12px;
+			}
+			.boton--chico {
+				min-height: 2.75rem;
+				padding: 0.25rem 1rem;
+				font-size: 0.9375rem;
+			}
+			@media (hover: hover) {
+				.boton:hover {
+					--ahora: calc(var(--relieve-alto) + 1px);
+				}
+			}
+			.boton:active {
+				--ahora: 0px;
+			}
+
+			/* ── Cabecera: pegajosa, del color del suelo con un velo de desenfoque ── */
+			.cabecera {
+				position: sticky;
+				top: 0;
+				z-index: 100;
+				padding-top: env(safe-area-inset-top, 0px);
+			}
+			.cabecera::before {
+				content: '';
+				position: absolute;
+				inset: 0;
+				z-index: -1;
+				background: var(--cabecera-fondo);
+				-webkit-backdrop-filter: blur(12px);
+				backdrop-filter: blur(12px);
+			}
+			.cabecera-fila {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				height: var(--cabecera);
+			}
+			.marca {
+				display: inline-flex;
+				align-items: center;
+				min-height: 2.75rem;
+				flex: none;
+				margin-right: auto;
+				color: var(--tinta);
+			}
+			.logo {
+				display: block;
+				width: 9.5rem;
+				height: auto;
+			}
+			.nav {
+				display: none;
+			}
+			.cab-llamado {
+				display: none;
+			}
+			/* El cambio de tema: hundido, como un campo. Muestra el astro del tema que hay. */
+			.tema-boton {
+				display: grid;
+				place-items: center;
+				flex: none;
+				width: 2.75rem;
+				height: 2.75rem;
+				padding: 0;
+				border: 1px solid var(--borde);
+				border-radius: 10px;
+				background: var(--hundido);
+				box-shadow: inset 0 2px 0 0 var(--hundido-filo);
+				color: var(--tinta);
+			}
+			.tema-boton svg {
+				grid-area: 1 / 1;
+				width: 1.25rem;
+				height: 1.25rem;
+			}
+			.tema-boton .luna,
+			[data-theme='dark'] .tema-boton .sol {
+				display: none;
+			}
+			[data-theme='dark'] .tema-boton .luna {
+				display: block;
+			}
+			@media (prefers-color-scheme: dark) {
+				:root:not([data-theme]) .tema-boton .sol {
+					display: none;
+				}
+				:root:not([data-theme]) .tema-boton .luna {
+					display: block;
+				}
+			}
+			@media (hover: hover) {
+				.tema-boton:hover {
+					border-color: var(--borde-campo);
+				}
+			}
+			.tema-boton:active {
+				background: var(--elevado);
+			}
+			@media (min-width: 35rem) {
+				.cab-llamado {
+					display: inline-flex;
+				}
+			}
+			@media (min-width: 68.75rem) {
+				.marca {
+					margin-right: 1.25rem;
+				}
+				.logo {
+					width: 11rem;
+				}
+				.nav {
+					display: flex;
+					align-items: center;
+					flex: 1;
+					min-width: 0;
+				}
+				.nav a {
+					display: inline-flex;
+					align-items: center;
+					min-height: 2.75rem;
+					padding: 0 0.875rem;
+					border-radius: 8px;
+					font: 500 0.9375rem/1 var(--f-texto);
+					color: var(--cuerpo);
+					white-space: nowrap;
+				}
+				.nav .nav-sesion {
+					margin-left: auto;
+					color: var(--tinta);
+				}
+				.cab-llamado {
+					margin-left: 0.375rem;
+				}
+			}
+			@media (min-width: 68.75rem) and (hover: hover) {
+				.nav a:hover {
+					color: var(--tinta);
+					background: var(--hundido);
+				}
+			}
+
+			/* ── El tramo: suelo + resplandor de aerógrafo + grano (Tramo.svelte, `brillo`) ── */
+			main {
+				flex: 1;
+				position: relative;
+				isolation: isolate;
+				display: grid;
+				align-items: center;
+				padding-block: clamp(2rem, 6vw, 4.5rem) clamp(3rem, 8vw, 6rem);
+				overflow-x: clip;
+				background:
+					radial-gradient(34rem 22rem at 50% 14rem, var(--brillo-a), transparent 72%),
+					radial-gradient(52rem 30rem at 50% 58%, var(--brillo-b), transparent 70%),
+					radial-gradient(26rem 18rem at 92% 70%, var(--brillo-verde), transparent 70%),
+					radial-gradient(26rem 18rem at 6% 66%, var(--brillo-ambar), transparent 70%), var(--fondo);
+			}
+			main::after {
+				content: '';
+				position: absolute;
+				inset: 0;
+				z-index: -1;
+				pointer-events: none;
+				background: var(--grano-tinta);
+				opacity: var(--grano-fuerza);
+				-webkit-mask: var(--grano), linear-gradient(#000 calc(100% - 14rem), transparent);
+				-webkit-mask-composite: source-in;
+				mask: var(--grano), linear-gradient(#000 calc(100% - 14rem), transparent);
+				mask-composite: intersect;
+			}
+			.error {
+				display: grid;
+				justify-items: center;
+				text-align: center;
+			}
+
+			/* ── La pieza: el teclado con el 404 (TecladoError.svelte) ── */
+			.pieza {
+				--pz: min(19rem, 76vw);
+				position: relative;
+				width: var(--pz);
+				margin-inline: auto;
+				padding-top: calc(var(--pz) * 0.2);
+			}
+			.ausente {
+				position: absolute;
+				left: -9%;
+				top: 0;
+				width: 36%;
+				height: auto;
+				transform: rotate(-10deg);
+				color: var(--borde-campo);
+			}
+			.sello {
+				position: absolute;
+				right: -8%;
+				top: calc(var(--pz) * -0.04);
+				z-index: 2;
+				width: 29%;
+				height: auto;
+				transform: rotate(12deg);
+				color: var(--rojo-texto);
+			}
+			.s-fondo {
+				fill: var(--fondo);
+			}
+			.sello text {
+				fill: currentColor;
+				font-family: var(--f-titulo);
+				font-weight: 700;
+			}
+			.teclado {
+				position: relative;
+				z-index: 1;
+				display: grid;
+				grid-template-columns: repeat(3, 1fr);
+				gap: 4%;
+				padding: 6% 5% 10%;
+				border: 2px solid var(--borde-campo);
+				border-radius: calc(var(--pz) * 0.062);
+				background: var(--fondo-hondo);
+				box-shadow: 0 calc(var(--pz) * 0.03) 0 var(--losa);
+				transform: rotate(-3deg);
+			}
+			.teclado::after {
+				content: '';
+				position: absolute;
+				left: 50%;
+				bottom: 3.6%;
+				width: 15%;
+				aspect-ratio: 5 / 1;
+				transform: translateX(-50%);
+				background:
+					radial-gradient(circle closest-side, var(--ambar-losa) 92%, transparent) 0 50% / 20% 100%
+						no-repeat,
+					radial-gradient(circle closest-side, var(--cian) 92%, transparent) 50% 50% / 20% 100%
+						no-repeat,
+					radial-gradient(circle closest-side, var(--verde) 92%, transparent) 100% 50% / 20% 100%
+						no-repeat;
+			}
+			.teclon {
+				--c: var(--ambar);
+				--l: var(--ambar-losa);
+				--h: calc(var(--pz) * 0.032);
+				display: grid;
+				place-items: center;
+				aspect-ratio: 1 / 0.94;
+				border: 2px solid var(--l);
+				border-radius: 17%;
+				background: var(--c);
+				color: var(--sobre-acento);
+				font: 700 calc(var(--pz) * 0.17) / 1 var(--f-titulo);
+				letter-spacing: -0.035em;
+				box-shadow:
+					0 var(--h) 0 var(--l),
+					inset 0 3px 0 rgb(255 255 255 / 0.32);
+				transform: translateY(calc(-1 * var(--h)));
+			}
+			.teclon--verde {
+				--c: var(--verde);
+				--l: var(--verde-losa);
+			}
+			/* Apagada: hundida en el teclado, sin color. La tecla que no se presionó. */
+			.teclon--apagada {
+				border-color: var(--borde);
+				background: var(--tarjeta);
+				color: var(--apoyo);
+				box-shadow: inset 0 3px 0 var(--fondo-hondo);
+				transform: none;
+			}
+			@media (min-width: 48rem) {
+				.pieza {
+					--pz: 21.5rem;
+				}
+			}
+
+			/* ── El titular de dos golpes, la entrada y los caminos ── */
+			h1 {
+				margin-top: clamp(2rem, 5vw, 3rem);
+				font: 700 clamp(2.125rem, 1.35rem + 3.6vw, 3.75rem) / 1.08 var(--f-titulo);
+				letter-spacing: -0.022em;
+				color: var(--tinta);
+				text-wrap: balance;
+			}
+			h1 > span {
+				display: block;
+			}
+			/* El acento: luz en oscuro, resaltador en claro (`.acento` de src/app.css). */
+			.acento {
+				font-style: normal;
+				color: var(--ambar-titular);
+				padding-inline: 0.1em;
+				margin-inline: -0.1em;
+				background: linear-gradient(transparent 60%, var(--ambar-marca) 60% 93%, transparent 93%);
+				-webkit-box-decoration-break: clone;
+				box-decoration-break: clone;
+			}
+			.entrada {
+				max-width: 34rem;
+				margin-top: clamp(1rem, 2.4vw, 1.5rem);
+				font: 500 clamp(1.1875rem, 1rem + 0.9vw, 1.6875rem) / 1.3 var(--f-texto);
+				letter-spacing: -0.008em;
+				color: var(--tinta);
+				text-wrap: pretty;
+			}
+			.remate {
+				max-width: 30rem;
+				margin-top: 0.75rem;
+				text-wrap: balance;
+			}
+			.acciones {
+				display: flex;
+				flex-wrap: wrap;
+				justify-content: center;
+				gap: 0.875rem;
+				margin-top: 2rem;
+			}
+			.atajos {
+				display: flex;
+				flex-wrap: wrap;
+				justify-content: center;
+				gap: 0 1.5rem;
+				margin-top: 0.75rem;
+			}
+			.atajos a {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				min-width: 2.75rem;
+				min-height: 2.75rem;
+				font: 500 1rem/1 var(--f-texto);
+				color: var(--tinta);
+				text-decoration: underline;
+				text-decoration-color: var(--cian);
+				text-decoration-thickness: 2px;
+				text-underline-offset: 0.3em;
+			}
+			@media (max-width: 26.99rem) {
+				.acciones {
+					flex-direction: column;
+					align-self: stretch;
+					width: 100%;
+				}
+				.acciones .boton {
+					white-space: normal;
+				}
+			}
+
+			/* ── Pie: el tramo más hondo del tema ── */
+			.pie {
+				padding-block: 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px));
+				background: var(--fondo-pie);
+				font-size: 0.875rem;
+				color: var(--apoyo);
+			}
+			.pie-fila {
+				display: flex;
+				flex-wrap: wrap;
+				align-items: center;
+				gap: 0.25rem 1.5rem;
+			}
+			.pie a {
+				display: inline-flex;
+				align-items: center;
+				min-height: 2.75rem;
+				color: var(--tinta);
+			}
+			@media (hover: hover) {
+				.pie a:hover {
+					text-decoration: underline;
+					text-underline-offset: 0.2em;
+				}
+			}
+			.puntos {
+				display: inline-flex;
+				gap: 0.375rem;
+				flex: none;
+				margin-left: auto;
+			}
+			.puntos > i {
+				width: 0.625rem;
+				height: 0.625rem;
+				border-radius: 50%;
+				background: var(--ambar-losa);
+			}
+			.puntos > i:nth-child(2) {
+				background: var(--cian);
+			}
+			.puntos > i:nth-child(3) {
+				background: var(--verde);
+			}
+			@media (prefers-reduced-motion: reduce) {
+				* {
+					transition: none !important;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<a class="saltar" href="#contenido">Saltar al contenido</a>
+
+		<header class="cabecera">
+			<div class="contenedor cabecera-fila">
+				<a class="marca" href="/" aria-label="SisteAcuse inicio"
+					><svg
+						class="logo"
+						viewBox="47.9 103.5 1586.9 216.3"
+						width="176"
+						height="24"
+						aria-hidden="true"
+						focusable="false"
+					>
+						<path
+							fill="currentColor"
+							d="M109.525 295.58c29.176 0 43.766-9.976 43.766-29.937q0-9.218-3.891-15.688c-2.594-4.32-6.102-8.066-10.516-11.234q-6.611-4.746-15.109-8.203a545 545 0 0 0-18-6.922q-10.939-3.732-20.734-8.484c-6.524-3.164-12.184-6.907-16.985-11.22q-7.204-6.48-11.375-15.405-4.172-8.935-4.172-21.61-.002-26.203 17.844-40.875c11.906-9.789 28.32-14.687 49.25-14.687q18.14 0 32.969 3.89 14.826 3.879 21.734 8.485l-8.922 22.75q-6.045-3.749-18-7.344-11.953-3.593-27.78-3.594-8.065 0-14.985 1.735-6.909 1.72-12.094 5.171-5.175 3.456-8.203 8.782-3.017 5.331-3.016 12.515-.001 8.063 3.157 13.547 3.168 5.472 8.921 9.64 5.764 4.174 13.391 7.626c5.094 2.305 10.711 4.61 16.86 6.922q12.949 5.173 23.75 10.36c7.195 3.46 13.437 7.589 18.718 12.39q7.922 7.189 12.235 17.125t4.312 24.047c0 17.46-6.383 30.89-19.14 40.296q-19.144 14.11-53.985 14.11-11.812 0-21.75-1.578c-6.617-1.055-12.516-2.297-17.703-3.735-5.18-1.445-9.64-2.984-13.39-4.609q-5.613-2.451-8.782-4.188l8.36-23.03q6.607 3.751 20.14 8.359c9.031 3.062 20.07 4.593 33.125 4.593M241.396 315.455h-26.78V165.721h26.78Zm-13.53-176.797q-7.208.001-12.25-4.75-5.033-4.748-5.032-12.812 0-8.062 5.031-12.813 5.043-4.748 12.25-4.75 7.2.002 12.234 4.75 5.047 4.751 5.047 12.813 0 8.064-5.047 12.812-5.032 4.751-12.234 4.75M322.308 296.158q16.405 0 24.328-4.312 7.921-4.324 7.922-13.828 0-9.778-7.782-15.531c-5.18-3.844-13.718-8.164-25.625-12.97a389 389 0 0 1-16.562-7.046c-5.274-2.406-9.828-5.238-13.672-8.5q-5.753-4.888-9.203-11.797c-2.305-4.613-3.453-10.281-3.453-17q0-19.856 14.672-31.516 14.683-11.67 40.03-11.671 6.33.002 12.657.718 6.34.72 11.813 1.735 5.467 1.001 9.64 2.156 4.186 1.143 6.485 2.016l-4.891 23.03q-4.314-2.294-13.531-4.75-9.224-2.45-22.172-2.452-11.239.002-19.594 4.468-8.343 4.47-8.344 13.97 0 4.89 1.875 8.64c1.25 2.492 3.164 4.746 5.75 6.765q3.891 3.019 9.657 5.61 5.765 2.596 13.828 5.469 10.64 4.031 18.984 7.921 8.357 3.892 14.266 9.079 5.905 5.173 9.062 12.515 3.17 7.349 3.172 18c0 13.813-5.137 24.274-15.406 31.375-10.274 7.106-24.906 10.656-43.906 10.656q-19.876 0-31.11-3.312-11.219-3.31-15.25-5.031l4.89-23.047c3.071 1.156 7.97 2.887 14.688 5.187 6.72 2.305 15.645 3.453 26.782 3.453M440.932 165.721h56.734v22.469h-56.734v69.11q0 11.22 1.734 18.562 1.732 7.345 5.188 11.515 3.45 4.172 8.625 5.906 5.184 1.735 12.109 1.735 12.092.001 19.422-2.735 7.34-2.748 10.234-3.89l5.172 22.172c-2.687 1.343-7.39 3.023-14.11 5.031-6.718 2.02-14.398 3.031-23.03 3.031q-15.268 0-25.204-3.89c-6.617-2.594-11.937-6.477-15.968-11.657-4.032-5.187-6.868-11.57-8.5-19.156q-2.438-11.373-2.438-26.344V123.971l26.766-4.594ZM520.413 240.877c0-13.238 1.914-24.8 5.75-34.687 3.844-9.883 8.93-18.094 15.266-24.625q9.499-9.797 21.875-14.688 12.388-4.889 25.344-4.89 30.234.002 46.36 18.859 16.125 18.86 16.124 57.437v4.47q0 2.735-.281 5.03H548.335q1.732 23.33 13.531 35.422 11.811 12.094 36.86 12.094 14.107 0 23.75-2.437 9.655-2.45 14.547-4.766l3.75 22.469q-4.91 2.596-17.14 5.468-12.236 2.874-27.782 2.875-19.582 0-33.844-5.89-14.25-5.907-23.469-16.266c-6.136-6.914-10.695-15.125-13.672-24.625q-4.452-14.263-4.453-31.25M623.21 226.19q.28-18.14-9.078-29.797c-6.242-7.77-14.828-11.656-25.766-11.656q-9.221.001-16.28 3.593c-4.7 2.399-8.68 5.516-11.938 9.36q-4.893 5.765-7.64 13.25a65 65 0 0 0-3.595 15.25Zm0 0"
+						/>
+						<path
+							fill="#0db4dc"
+							d="M823.33 315.455a508 508 0 0 0-7.063-21.297q-3.877-10.95-7.625-21.89h-77.75a1919 1919 0 0 1-7.625 21.89 485 485 0 0 0-7.047 21.297h-46.656q11.233-32.249 21.313-59.593 10.076-27.359 19.718-51.547 9.656-24.186 19-45.922 9.359-21.749 19.438-42.485h42.906a1587 1587 0 0 1 19.297 42.485q9.496 21.736 19.14 45.922 9.657 24.188 19.735 51.547 10.077 27.344 21.297 59.593Zm-53.844-154.328q-1.44 4.314-4.328 11.797-2.876 7.486-6.625 17.281a6533 6533 0 0 0-8.203 21.594 1349 1349 0 0 0-9.063 24.766h56.719a2755 2755 0 0 0-8.938-24.766c-2.875-7.875-5.609-15.07-8.203-21.594a2130 2130 0 0 1-6.765-17.28q-2.878-7.485-4.594-11.798M884.08 239.721q-.002-16.406 5.327-30.938 5.328-14.543 15.407-25.343c6.718-7.196 14.875-12.907 24.468-17.125q14.405-6.342 32.828-6.344 12.095 0 22.172 2.156a107.8 107.8 0 0 1 19.578 6.188l-8.921 34.265q-6.049-2.294-13.25-4.015-7.19-1.735-16.125-1.735-19.003 0-28.36 11.813-9.361 11.8-9.36 31.078 0 20.456 8.782 31.687 8.78 11.22 30.672 11.22 7.78.002 16.703-1.438 8.918-1.434 16.406-4.61l6.047 35.125c-4.992 2.118-11.23 3.938-18.719 5.47-7.48 1.538-15.73 2.312-24.75 2.312q-20.736 0-35.718-6.188-14.97-6.186-24.61-16.844c-6.43-7.101-11.132-15.5-14.109-25.187q-4.47-14.543-4.469-31.547M1164.533 310.268q-10.94 3.176-28.218 5.906c-11.512 1.82-23.606 2.734-36.282 2.734q-19.282-.002-32.11-5.171-12.813-5.185-20.296-14.547-7.487-9.358-10.656-22.313-3.158-12.965-3.156-28.515v-84.36h42.906v79.188c0 13.812 1.82 23.793 5.469 29.937 3.644 6.149 10.457 9.219 20.437 9.219q4.606 0 9.781-.438c3.457-.289 6.532-.625 9.219-1V164.002h42.906ZM1248.333 284.643q11.795 0 16.687-2.297 4.906-2.312 4.907-8.922c0-3.457-2.118-6.484-6.344-9.078-4.219-2.594-10.649-5.52-19.281-8.781q-10.08-3.75-18.297-7.782-8.204-4.029-13.97-9.64-5.752-5.606-8.92-13.375c-2.106-5.188-3.157-11.43-3.157-18.735 0-14.195 5.273-25.421 15.828-33.671q15.842-12.389 43.484-12.391 13.81.002 26.485 2.453c8.445 1.625 15.164 3.399 20.156 5.313l-7.484 33.406q-7.49-2.592-16.266-4.61-8.785-2.015-19.719-2.015-20.156.001-20.156 11.234-.001 2.594.86 4.61.856 2.015 3.452 3.89c1.727 1.242 4.079 2.586 7.047 4.031 2.977 1.438 6.77 3.024 11.375 4.75 9.407 3.45 17.18 6.856 23.328 10.22q9.217 5.032 14.547 10.937 5.327 5.906 7.485 13.11 2.156 7.188 2.156 16.687-.002 22.47-16.844 33.984-16.846 11.515-47.656 11.516-20.158-.001-33.547-3.454-13.395-3.45-18.562-5.765l7.187-34.828a141.6 141.6 0 0 0 22.469 6.765q11.513 2.438 22.75 2.438M1337.296 240.877q0-20.155 6.187-35.265c4.133-10.082 9.563-18.485 16.282-25.204q10.076-10.076 23.172-15.25 13.106-5.186 26.921-5.187 32.25 0 50.97 19.734c12.476 13.149 18.718 32.48 18.718 58 0 2.5-.102 5.243-.297 8.22a369 369 0 0 1-.578 7.905h-97.313c.957 8.836 5.082 15.844 12.375 21.032 7.29 5.18 17.082 7.765 29.375 7.765q11.794 0 23.172-2.156c7.582-1.438 13.774-3.211 18.578-5.328l5.75 34.844c-2.304 1.148-5.375 2.296-9.218 3.453q-5.753 1.733-12.813 3.015-7.047 1.295-15.11 2.157a150 150 0 0 1-16.124.875q-20.438 0-35.563-6.047-15.11-6.047-25.047-16.547c-6.625-7.008-11.523-15.313-14.687-24.906q-4.751-14.404-4.75-31.11m100.781-16.406a43.8 43.8 0 0 0-1.875-10.656q-1.58-5.187-4.89-9.219-3.316-4.031-8.36-6.61-5.033-2.591-12.515-2.593-7.207.002-12.391 2.453-5.174 2.437-8.625 6.469c-2.305 2.687-4.078 5.808-5.328 9.36a61 61 0 0 0-2.735 10.796Zm0 0"
+						/>
+						<circle cx="1522.7" cy="292.5" r="21" fill="#c98802" />
+						<circle cx="1568.2" cy="292.5" r="21" fill="#0db4dc" />
+						<circle cx="1613.7" cy="292.5" r="21" fill="#41d78c" /></svg
+				></a>
+				<nav class="nav" aria-label="Navegación principal">
+					<a href="/demo">Demo</a>
+					<a href="/planes">Planes</a>
+					<a href="/blog">Blog</a>
+					<a href="/certificado-dian-gratis">Certificado DIAN</a>
+					<a href="/contacto">Contacto</a>
+					<a class="nav-sesion" href="https://app.sisteacuse.com/login">Iniciar sesión</a>
+				</nav>
+				<button class="tema-boton" type="button" id="tema" aria-label="Cambiar de tema">
+					<svg
+						class="sol"
+						viewBox="0 0 20 20"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path
+							d="M10 6.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7zM10 2v1.5M10 16.5V18M2 10h1.5M16.5 10H18M4.3 4.3l1.1 1.1M14.6 14.6l1.1 1.1M4.3 15.7l1.1-1.1M14.6 5.4l1.1-1.1"
+						/>
+					</svg>
+					<svg
+						class="luna"
+						viewBox="0 0 20 20"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						aria-hidden="true"
+					>
+						<path d="M16.5 12.2A7 7 0 0 1 7.8 3.5a7 7 0 1 0 8.7 8.7z" />
+					</svg>
+				</button>
+				<a class="boton boton--primario boton--chico cab-llamado" href="/planes">Ver planes</a>
+			</div>
+		</header>
+
+		<main id="contenido">
+			<div class="contenedor error">
+				<!-- El teclado con el 404: decorativo. La «0» apagada es la tecla que no se presionó. -->
+				<div class="pieza" aria-hidden="true">
+					<svg class="ausente" viewBox="0 0 200 250" width="200" height="250" fill="none">
+						<path
+							d="M16 12a6 6 0 0 1 6-6h112l44 44v178a6 6 0 0 1-6 6H22a6 6 0 0 1-6-6z"
+							stroke="currentColor"
+							stroke-width="3"
+							stroke-dasharray="7 9"
+							stroke-linecap="round"
+						/>
+						<path
+							d="M134 6v38a6 6 0 0 0 6 6h38"
+							stroke="currentColor"
+							stroke-width="3"
+							stroke-dasharray="7 9"
+							stroke-linecap="round"
+						/>
+					</svg>
+					<svg class="sello" viewBox="0 0 160 160" width="160" height="160">
+						<circle cx="80" cy="80" r="74" class="s-fondo" stroke="currentColor" stroke-width="6" />
+						<circle
+							cx="80"
+							cy="80"
+							r="61"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="3"
+							stroke-dasharray="2 7"
+							stroke-linecap="round"
+						/>
+						<text x="80" y="86" text-anchor="middle" font-size="50" letter-spacing="-1">NO</text>
+						<text x="81" y="111" text-anchor="middle" font-size="17" letter-spacing="2">
+							RADICADA
+						</text>
+					</svg>
+					<div class="teclado oscura">
+						<div class="teclon">4</div>
+						<div class="teclon teclon--apagada">0</div>
+						<div class="teclon teclon--verde">4</div>
+					</div>
+				</div>
+
+				<h1><span>Esta página</span> <em class="acento">no quedó radicada.</em></h1>
+				<p class="entrada">La página que buscas no existe o fue movida.</p>
+				<p class="remate">Quedó pendiente, como un acuse hecho a mano en el portal de la DIAN.</p>
+
+				<div class="acciones">
+					<a class="boton boton--primario boton--grande" href="/">Ir al inicio</a>
+					<a class="boton boton--grande" href="/demo">Probar la demo interactiva</a>
+				</div>
+
+				<nav class="atajos" aria-label="Páginas principales">
+					<a href="/planes">Planes</a>
+					<a href="/blog">Blog</a>
+					<a href="/contacto">Contacto</a>
+				</nav>
+			</div>
+		</main>
+
+		<footer class="pie">
+			<div class="contenedor pie-fila">
+				<p>&copy; SisteAcuse</p>
+				<a href="/terminos">Términos de servicio</a>
+				<a href="/privacidad">Política de privacidad</a>
+				<span class="puntos" aria-hidden="true"><i></i><i></i><i></i></span>
+			</div>
+		</footer>
+
+		<!-- El cambio de tema: la misma llave que el sitio ('siste-theme'), así la elección
+		     vale también al volver a cualquier página. -->
+		<script>
+			(() => {
+				const raiz = document.documentElement;
+				const boton = document.getElementById('tema');
+				const COLOR = { light: '#eef3f7', dark: '#0e1824' };
+				const rotular = () => {
+					boton.setAttribute(
+						'aria-label',
+						raiz.dataset.theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'
+					);
+					for (const m of document.querySelectorAll('meta[name="theme-color"]'))
+						m.content = COLOR[raiz.dataset.theme] || COLOR.light;
+				};
+				rotular();
+				boton.addEventListener('click', () => {
+					const t = raiz.dataset.theme === 'dark' ? 'light' : 'dark';
+					raiz.dataset.theme = t;
+					try {
+						localStorage.setItem('siste-theme', t);
+					} catch {}
+					rotular();
+				});
+			})();
+		</script>
+	</body>
+</html>

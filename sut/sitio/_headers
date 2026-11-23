@@ -1,0 +1,40 @@
+# Cloudflare Pages: encabezados del sitio (antes los ponía .htaccess en BanaHosting).
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# Archivos con hash de Vite: se pueden guardar un año.
+/_app/immutable/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Fuentes web: el nombre lleva versión (.v1, .v2…), se pueden guardar un año.
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Imágenes e íconos: una semana.
+/clients/*
+  Cache-Control: public, max-age=604800
+/dian-guide/*
+  Cache-Control: public, max-age=604800
+
+# Los JSON de datos del blog duplican el contenido de los posts: no indexar.
+/*.json
+  X-Robots-Tag: noindex
+
+# Páginas del pago: noindex también sin JavaScript (antes solo el <meta>).
+/registro
+  X-Robots-Tag: noindex, nofollow
+/gracias
+  X-Robots-Tag: noindex, nofollow
+/recuperar-contrasena
+  X-Robots-Tag: noindex, follow
+
+# Copia de revisión del rediseño (new.sisteacuse.com): nunca al índice. Una regla con
+# host solo rige en ese host, así que en sisteacuse.com no cambia nada. Si el subdominio
+# lo sirve otro servidor (Caddy), este archivo no se lee y el encabezado lo pone ese
+# servidor: ver docs/SUBDOMINIO-DE-REVISION.md.
+https://new.sisteacuse.com/*
+  X-Robots-Tag: noindex, nofollow

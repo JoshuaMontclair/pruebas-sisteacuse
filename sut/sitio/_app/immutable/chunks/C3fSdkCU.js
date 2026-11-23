@@ -1,0 +1,1 @@
+import"./BiBR86MK.js";import"./DENi7JsB.js";import{a as s,f as a}from"./qxW4Fr3a.js";var i=a('<div class="brochazos svelte-1v0o4zr" aria-hidden="true"><i class="svelte-1v0o4zr"></i><i class="svelte-1v0o4zr"></i><i class="svelte-1v0o4zr"></i></div>');function l(o){var r=i();s(o,r)}export{l as B};

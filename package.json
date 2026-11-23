@@ -1,0 +1,22 @@
+{
+  "name": "pruebas-sisteacuse",
+  "private": true,
+  "type": "module",
+  "description": "Proyecto final de Construcción de Software y Pruebas: pruebas automatizadas sobre SisteAcuse",
+  "scripts": {
+    "test:unit": "vitest run",
+    "test:cobertura": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test": "npm run test:cobertura && npm run test:e2e",
+    "sitio": "node scripts/servir-sitio.mjs",
+    "reporte:e2e": "playwright show-report reportes/e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^3.2.7",
+    "@vitest/ui": "^3.2.7",
+    "typescript": "^7.0.2",
+    "vitest": "^3.2.7"
+  }
+}

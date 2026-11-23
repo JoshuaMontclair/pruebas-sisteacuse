@@ -1,0 +1,7 @@
+Código bajo prueba copiado de los repositorios de SisteAcuse (rama main)
+
+SisteAcuse (app)         f74ba20c  src/lib/rut/nit.ts, src/lib/calendario/{festivos,plazos}.ts
+SisteAcuseWebsite        07f7948  supabase/functions/_shared/pagos.ts
+Oráculo del calendario   f74ba20c  scripts/fixtures/calendario-2026-actualicese.ts
+Sitio público compilado    07f7948  SisteAcuseWebsite (vite build con VITE_SUPABASE_URL=http://supabase.prueba.local);
+                           sin blog/, ayuda/, herramientas/ ni recorrido/ (fuera del alcance)

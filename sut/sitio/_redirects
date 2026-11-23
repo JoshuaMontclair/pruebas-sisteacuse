@@ -1,0 +1,62 @@
+# Cloudflare Pages: redirecciones del sitio (antes, reglas de .htaccess en BanaHosting).
+# Pages ya hace solo: /pagina.html → /pagina, /index → / y quita la barra final
+# cuando existe pagina.html. www → sisteacuse.com va en una Redirect Rule de la
+# zona (este archivo no ve el host).
+
+# URLs viejas que ya no existen
+/contadores                /planes                   301
+/contadores/               /planes                   301
+# /ayuda era el centro de ayuda de la app de escritorio. Sus dos guías se fueron al
+# certificado; /ayuda y /ayuda/* ya no van con comodín porque ahí vive el centro de
+# ayuda nuevo (la portada /ayuda existe desde 2026-11-14).
+/ayuda/certificado-dian-gratis   /certificado-dian-gratis  301
+/ayuda/certificado-dian-gratis/  /certificado-dian-gratis  301
+/ayuda/como-instalar      /certificado-dian-gratis  301
+/ayuda/como-instalar/     /certificado-dian-gratis  301
+
+# Posts fusionados: el slug eliminado va al que quedó (ver RETIRED_SLUGS en
+# src/lib/seo-clusters.ts; el test seo-clusters.test.ts exige ambos pares).
+/blog/beneficios-tributarios-pymes-colombia-2026       /blog/beneficios-tributarios-pyme-colombia-2026  301
+/blog/beneficios-tributarios-pymes-colombia-2026/      /blog/beneficios-tributarios-pyme-colombia-2026  301
+/blog/calendario-tributario-dian-2026-2026             /blog/calendario-tributario-dian-2026            301
+/blog/calendario-tributario-dian-2026-2026/            /blog/calendario-tributario-dian-2026            301
+/blog/iva-colombia-2026-tarifas-exclusiones-2026       /blog/iva-colombia-2026-tarifas-exclusiones      301
+/blog/iva-colombia-2026-tarifas-exclusiones-2026/      /blog/iva-colombia-2026-tarifas-exclusiones      301
+/blog/regimen-simple-tributacion-colombia              /blog/regimen-simple-tributacion-colombia-2026   301
+/blog/regimen-simple-tributacion-colombia/             /blog/regimen-simple-tributacion-colombia-2026   301
+/blog/declaracion-renta-personas-naturales-2026        /blog/declaracion-renta-persona-natural-colombia-2026 301
+/blog/declaracion-renta-personas-naturales-2026/       /blog/declaracion-renta-persona-natural-colombia-2026 301
+/blog/renta-personas-juridicas-2026                    /blog/declaracion-renta-personas-juridicas-colombia-2026 301
+/blog/renta-personas-juridicas-2026/                   /blog/declaracion-renta-personas-juridicas-colombia-2026 301
+/blog/tabla-retencion-fuente-2026                      /blog/retencion-en-la-fuente-2026-colombia       301
+/blog/tabla-retencion-fuente-2026/                     /blog/retencion-en-la-fuente-2026-colombia       301
+/blog/ica-impuesto-industria-comercio-colombia         /blog/ica-colombia-guia-por-ciudad               301
+/blog/ica-impuesto-industria-comercio-colombia/        /blog/ica-colombia-guia-por-ciudad               301
+/blog/obligaciones-tributarias-pyme-colombia-2026      /blog/impuestos-colombia-2026-guia-pyme-contador 301
+/blog/obligaciones-tributarias-pyme-colombia-2026/     /blog/impuestos-colombia-2026-guia-pyme-contador 301
+/blog/software-contable-colombia-2026                  /blog/mejor-software-contable-colombia-2026      301
+/blog/software-contable-colombia-2026/                 /blog/mejor-software-contable-colombia-2026      301
+/blog/automatizar-procesos-contables                   /blog/automatizacion-contabilidad-7-procesos     301
+/blog/automatizar-procesos-contables/                  /blog/automatizacion-contabilidad-7-procesos     301
+
+# Hubs de categoría que desaparecen con la consolidación (RETIRED_HUBS)
+/blog/categoria/impuestos                              /blog/categoria/tributario                       301
+/blog/categoria/impuestos/                             /blog/categoria/tributario                       301
+/blog/categoria/herramientas                           /blog/categoria/software-y-automatizacion        301
+/blog/categoria/herramientas/                          /blog/categoria/software-y-automatizacion        301
+/blog/categoria/software-contable                      /blog/categoria/software-y-automatizacion        301
+/blog/categoria/software-contable/                     /blog/categoria/software-y-automatizacion        301
+/blog/categoria/nomina-electronica                     /blog/categoria/factura-electronica              301
+/blog/categoria/nomina-electronica/                    /blog/categoria/factura-electronica              301
+/blog/categoria/tutorial                               /blog/categoria/radian                           301
+/blog/categoria/tutorial/                              /blog/categoria/radian                           301
+/blog/categoria/regulacion                             /blog/categoria/factura-electronica              301
+/blog/categoria/regulacion/                            /blog/categoria/factura-electronica              301
+/blog/categoria/eventos-radian                         /blog/categoria/radian                           301
+/blog/categoria/eventos-radian/                        /blog/categoria/radian                           301
+
+# Rutas que solo existen en el cliente (no se prerenderizan): sirven el
+# fallback de SvelteKit con estado 200. Lo demás que no exista → 404.html.
+/registro                  /200                      200
+/gracias                   /200                      200
+/prueba                    /200                      200

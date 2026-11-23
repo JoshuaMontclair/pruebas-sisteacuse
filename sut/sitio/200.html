@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<!-- Metadatos SEO (title, description, canonical, og, JSON-LD) lo más arriba
+		     posible: un parser sin JS no debe encontrar nada inválido antes. -->
+		
+		<!-- El suelo de cada tema, antes de que llegue la hoja de estilos. Las páginas
+		     prerenderizadas traen su CSS en línea y no lo necesitan; /registro y /gracias se
+		     sirven con la cáscara (200.html), sin CSS: sin esto, en tema oscuro se veían en
+		     blanco hasta hidratar. Son los valores de `--fondo` de src/app.css (la prueba
+		     src/lib/tema-fichas.test.ts falla si se separan). -->
+		<style>
+			html {
+				background: #eef3f7;
+				color-scheme: light;
+			}
+			html[data-theme='dark'] {
+				background: #0e1824;
+				color-scheme: dark;
+			}
+			@media (prefers-color-scheme: dark) {
+				html:not([data-theme]) {
+					background: #0e1824;
+					color-scheme: dark;
+				}
+			}
+		</style>
+		<!-- Google tag, Consent Mode v2. Modelo opt-out (decisión del dueño, 2026-09-26,
+		     pendiente del abogado; ver docs/consentimiento-cookies.md): analytics_storage
+		     arranca 'granted' y solo pasa a 'denied' si la persona rechaza la analítica.
+		     Las señales publicitarias de Google (Google Ads) arrancan en 'denied' y las
+		     concede src/lib/consent.ts, antes del config, solo después de leer la elección
+		     guardada y si la persona no rechazó la Publicidad: igual que el Meta Pixel, que
+		     no recibe `consent grant` hasta ese momento. Así nada publicitario se concede
+		     antes de saber si hubo un rechazo. Aquí solo va la cola y el estado por defecto; gtag.js +
+		     config, Meta Pixel y Microsoft Clarity los carga src/lib/consent.ts al entrar,
+		     salvo que la persona los haya rechazado en el aviso de cookies. -->
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag(){dataLayer.push(arguments);}
+			gtag('consent', 'default', {
+				ad_storage: 'denied',
+				ad_user_data: 'denied',
+				ad_personalization: 'denied',
+				analytics_storage: 'granted'
+			});
+		</script>
+		<script>
+			(() => {
+				// Marca de que hay JS: lo que se revela al desplazar solo se esconde si hay
+				// quien lo vuelva a mostrar (ver «Revelar» en src/app.css).
+				const raiz = document.documentElement;
+				raiz.classList.add('js');
+				// TEMA, antes de pintar (sin parpadeo): la elección guardada ('siste-theme' en
+				// localStorage: 'light' | 'dark') o, si no hay, la del sistema. Las fichas de
+				// src/app.css cuelgan de <html data-theme>. Quien cambia el tema es
+				// $lib/tema.svelte.ts (misma llave); sin JS manda prefers-color-scheme.
+				let tema = '';
+				try {
+					tema = localStorage.getItem('siste-theme') || '';
+				} catch {}
+				if (tema !== 'light' && tema !== 'dark')
+					tema = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+				raiz.dataset.theme = tema;
+			})();
+		</script>
+		<script>
+			// Fuentes web (static/fonts/, subconjunto latin), declaradas con la API FontFace.
+			// - Primera visita: la página se queda con los respaldos de app.css (fuentes del
+			//   sistema con métricas ajustadas) y NO cambia de fuente mientras se lee: cambiarla
+			//   después de pintar mueve el texto (CLS) donde el sistema no tiene Arial, como en
+			//   los servidores de PageSpeed. Las fuentes se descargan en segundo plano tras
+			//   `load` (sin aplicarlas) y se aplican en la siguiente navegación interna
+			//   (window.__saAplicarFuentes, desde +layout.svelte) o en la próxima visita.
+			// - Visitas siguientes (marca 'sa_fuentes', puramente funcional): se declaran de
+			//   inmediato con display 'optional': salen de la caché antes de pintar; si la caché
+			//   se borró, esa página se queda con el respaldo (sin salto) y se vuelven a bajar.
+			// Si cambia un archivo, sube su versión (.v2) para romper la caché de un año
+			// (static/_headers).
+			(() => {
+				if (typeof FontFace !== 'function' || !document.fonts) return;
+				const rango =
+					'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD';
+				const caras = [
+					['Ubuntu', 'ubuntu-latin-400.v1', '400'],
+					['Ubuntu', 'ubuntu-latin-500.v1', '500'],
+					['Ubuntu', 'ubuntu-latin-700.v1', '700'],
+					['Work Sans', 'work-sans-latin-wght.v1', '400 700']
+				];
+				const marca = 'sa_fuentes';
+				const crear = (display) =>
+					caras.map(
+						([familia, archivo, peso]) =>
+							new FontFace(familia, `url(/fonts/${archivo}.woff2) format("woff2")`, {
+								weight: peso,
+								style: 'normal',
+								display,
+								unicodeRange: rango
+							})
+					);
+				const marcar = () => {
+					try {
+						localStorage.setItem(marca, '1');
+					} catch {}
+				};
+				let enCache = false;
+				try {
+					enCache = localStorage.getItem(marca) === '1';
+				} catch {}
+				if (enCache) {
+					try {
+						for (const f of crear('optional')) document.fonts.add(f);
+					} catch {}
+					return;
+				}
+				// Primera visita: bajar sin aplicar, cuando la página ya cargó y el navegador
+				// está libre.
+				let listas = null;
+				const bajar = () => {
+					try {
+						const fs = crear('swap');
+						Promise.all(fs.map((f) => f.load()))
+							.then(() => {
+								listas = fs;
+								marcar();
+							})
+							.catch(() => {});
+					} catch {}
+				};
+				window.__saAplicarFuentes = () => {
+					if (!listas) return;
+					try {
+						for (const f of listas) document.fonts.add(f);
+					} catch {}
+					listas = null;
+				};
+				const libre = () =>
+					typeof requestIdleCallback === 'function'
+						? requestIdleCallback(bajar, { timeout: 3000 })
+						: setTimeout(bajar, 1);
+				if (document.readyState === 'complete') libre();
+				else addEventListener('load', libre, { once: true });
+			})();
+		</script>
+	</head>
+	<body data-sveltekit-preload-data="hover">
+		<div style="display: contents">
+			<script>
+				{
+					__sveltekit_10ehmgr = {
+						base: ""
+					};
+
+					const element = document.currentScript.parentElement;
+
+					Promise.all([
+						import("/_app/immutable/entry/start.B1OkQsOJ.js"),
+						import("/_app/immutable/entry/app.D4Fu_w7e.js")
+					]).then(([kit, app]) => {
+						kit.start(app, element);
+					});
+				}
+			</script>
+		</div>
+	</body>
+</html>
