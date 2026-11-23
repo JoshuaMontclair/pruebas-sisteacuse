@@ -47,11 +47,11 @@ Las pruebas **nunca** tocan producción, la DIAN ni la pasarela de pagos:
 
 ## Pruebas de mutación
 
-Stryker genera los mutantes solo (`stryker.config.json`), sobre las funciones en alcance de F1, F2 y F3. Los que sobreviven se revisaron uno por uno: o se escribió la prueba que faltaba, o quedaron justificados en `tests/mutacion/clasificacion.json` como equivalentes o como textos de presentación. `scripts/mutacion-resumen.mjs` falla si aparece un sobreviviente sin prueba ni justificación.
+Stryker genera los mutantes solo (`stryker.config.json`), sobre las funciones en alcance de F1, F2 y F3. Los que sobreviven se revisaron uno por uno: o se escribió la prueba que faltaba, o quedaron justificados en `tests/mutacion/clasificacion.json` como equivalentes (cambian el código pero no el resultado). `scripts/mutacion-resumen.mjs` falla si aparece un sobreviviente sin prueba ni justificación.
 
 ## Defectos encontrados
 
-`tests/unit/defectos.test.ts` documenta cinco defectos (DEF-01 a DEF-05) como pruebas de caracterización: fijan el valor exacto que devuelve hoy el código y su nombre dice cuál sería el correcto. Pasan mientras el defecto exista y fallan el día que se corrija.
+`tests/unit/defectos.test.ts` documenta cinco defectos (DEF-01 a DEF-05) y `tests/e2e/registro.spec.ts` uno más encontrado en la interfaz (DEF-06: un pago pendiente se puede pagar otra vez) como pruebas de caracterización: fijan el valor exacto que devuelve hoy el código y su nombre dice cuál sería el correcto. Pasan mientras el defecto exista y fallan el día que se corrija.
 
 ## Integración continua
 

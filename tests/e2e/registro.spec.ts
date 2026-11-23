@@ -289,6 +289,26 @@ test.describe('F4 · paso 2: pago', () => {
 	});
 });
 
+// Defecto encontrado por las E2E (prueba de caracterización, como las de
+// tests/unit/defectos.test.ts): fija el comportamiento de hoy y avisará cuando
+// se corrija.
+test.describe('DEF-06 · F4 · un pago pendiente se puede pagar otra vez', () => {
+	test('tras PENDING el sitio firma un segundo pago y vuelve a abrir Wompi (correcto: bloquear o advertir)', async ({ page, backend }) => {
+		backend.resultadoWompi = 'PENDING';
+		await llenarPaso1(page);
+		const boton = pagar(page);
+		await boton.click();
+		await expect(page.getByText('El pago quedó pendiente (común en PSE). Si se aprueba, el plan se activa solo.')).toBeVisible();
+
+		// El mensaje dice que el plan se activará solo, pero el botón sigue activo.
+		await expect(boton).toBeEnabled();
+		await boton.click();
+		await expect.poll(() => page.evaluate(() => (window as any).__aperturasWompi)).toBe(2);
+		const firmas = backend.llamadasA('/preparar-pago').filter((l) => !l.cuerpo?.solo_cotizar);
+		expect(firmas).toHaveLength(2);
+	});
+});
+
 test('CP-F4-22 un plan que no existe en la URL no abre el formulario de compra', async ({ page }) => {
 	await page.goto('/registro?plan=Plan%20Inventado');
 	await expect(page).toHaveTitle('Plan no disponible — SisteAcuse');

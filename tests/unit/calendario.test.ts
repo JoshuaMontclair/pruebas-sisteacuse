@@ -6,7 +6,7 @@
 // de equivalencia (PE) sobre el tipo de día, y prueba contra oráculo: la tabla
 // 2026 de Actualícese copiada a mano del PDF (tests/fixtures/).
 
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { diaHabil, domingoDePascua, esDiaHabil, festivosDeColombia } from '../../sut/app/calendario/festivos';
 import { calendarioDelAnio, DIGITOS, vencimientosDelAnio } from '../../sut/app/calendario/plazos';
 import { OBLIGACIONES_2026 } from '../fixtures/calendario-2026-actualicese';
@@ -108,7 +108,18 @@ describe('F2 · diaHabil(año, mes, n)', () => {
 });
 
 describe('F2 · vencimientos 2026 contra la tabla de Actualícese (oráculo)', () => {
-	const motor = calendarioDelAnio(2026);
+	// La tabla viene de una fuente publicada, pero no es independiente del
+	// código: plazos.ts se escribió y se ajustó contra esta misma tabla. Las
+	// fechas de los anticipos bimestrales del Régimen Simple tienen los meses
+	// inferidos de un encabezado mal extraído del PDF: no se usan como oráculo
+	// y quedan como caso pendiente (CP-F2-25).
+	// Se calcula en beforeAll y no al declarar las pruebas: si el código falla,
+	// fallan las pruebas (y Stryker lo cuenta como detectado), no la carga.
+	let motor: ReturnType<typeof calendarioDelAnio>;
+	beforeAll(() => {
+		motor = calendarioDelAnio(2026);
+	});
+	const esAnticipo = (nombre: string) => nombre.startsWith('Anticipo');
 
 	it('CP-F2-23 las mismas obligaciones, en el mismo orden', () => {
 		expect(motor.map((o) => o.id)).toEqual(OBLIGACIONES_2026.map((o) => o.id));
@@ -116,10 +127,12 @@ describe('F2 · vencimientos 2026 contra la tabla de Actualícese (oráculo)', (
 
 	// Un caso con una ejecución por obligación: CP-F2-24.1 … CP-F2-24.7.
 	OBLIGACIONES_2026.forEach((esperada, n) => {
-		it(`CP-F2-24.${n + 1} ${esperada.nombre}: todas las fechas coinciden`, () => {
+		const sinAnticipos = esperada.id === 'regimen-simple' ? ' (sin los anticipos, pendientes)' : '';
+		it(`CP-F2-24.${n + 1} ${esperada.nombre}${sinAnticipos}: todas las fechas coinciden`, () => {
 			const calculada = motor.find((o) => o.id === esperada.id)!;
 			expect(calculada.periodos).toHaveLength(esperada.periodos.length);
 			esperada.periodos.forEach((pe, i) => {
+				if (esAnticipo(pe.nombre)) return;
 				const fechas = Object.fromEntries(calculada.periodos[i].vencimientos.map((v) => [v.digito, v.fecha]));
 				for (const v of pe.vencimientos) {
 					expect(fechas[v.digito], `«${pe.nombre}» dígito ${v.digito}`).toBe(v.fecha);
@@ -128,15 +141,16 @@ describe('F2 · vencimientos 2026 contra la tabla de Actualícese (oráculo)', (
 		});
 	});
 
-	it('CP-F2-25 se comparan las 440 fechas publicadas', () => {
-		const total = OBLIGACIONES_2026.flatMap((o) => o.periodos).flatMap((p) => p.vencimientos).length;
-		expect(total).toBe(440);
-	});
+	it.todo('CP-F2-25 pendiente · las 60 fechas de los anticipos del Régimen Simple, contra el Decreto 2229 de 2023');
 });
 
 describe('F2 · «calendario 2027» = lo que vence dentro de 2027', () => {
-	const vence2027 = vencimientosDelAnio(2027);
-	const todas = vence2027.flatMap((o) => o.periodos.flatMap((p) => p.vencimientos.map((v) => v.fecha)));
+	let vence2027: ReturnType<typeof vencimientosDelAnio>;
+	let todas: string[];
+	beforeAll(() => {
+		vence2027 = vencimientosDelAnio(2027);
+		todas = vence2027.flatMap((o) => o.periodos.flatMap((p) => p.vencimientos.map((v) => v.fecha)));
+	});
 
 	it('CP-F2-28 VL · ninguna fecha cae fuera de 2027', () => {
 		expect(todas.length).toBeGreaterThan(0);
@@ -185,7 +199,10 @@ describe('F2 · propiedades del calendario de cualquier año', () => {
 // el tipo de dígito decide si la fecha se busca con el último o los dos últimos
 // dígitos del NIT. Agregados a partir de las pruebas de mutación.
 describe('F2 · claves, nombres y tipo de dígito de cada periodo (2026)', () => {
-	const cal = calendarioDelAnio(2026);
+	let cal: ReturnType<typeof calendarioDelAnio>;
+	beforeAll(() => {
+		cal = calendarioDelAnio(2026);
+	});
 	const ob = (id: string) => cal.find((o) => o.id === id)!;
 	const claves = (id: string) => ob(id).periodos.map((p) => p.clave);
 	const nombres = (id: string) => ob(id).periodos.map((p) => p.nombre);
@@ -268,6 +285,28 @@ describe('F2 · claves, nombres y tipo de dígito de cada periodo (2026)', () =>
 		expect(nombres('regimen-simple').slice(6)).toEqual([
 			'IVA anual consolidado del Simple (año gravable 2025)',
 			'Declaración anual del Simple (año gravable 2025)'
+		]);
+	});
+});
+
+// Instantánea (golden master) de los textos de cada obligación: etiqueta corta,
+// frecuencia, artículo citado, color y descripción. No sale de una fuente
+// externa: es lo que muestra hoy la app, revisado a mano por el equipo, y sirve
+// para detectar cualquier cambio no intencional en lo que ve el contador.
+// Se agregó porque Stryker mostró que ninguna prueba protegía estos textos.
+describe('F2 · textos que ve la persona (instantánea revisada)', () => {
+	it('CP-F2-42 etiqueta, frecuencia, artículo, color y descripción de cada obligación de 2026', () => {
+		const textos = calendarioDelAnio(2026).map(({ id, nombreCorto, frecuencia, norma, color, descripcion }) => ({
+			id, nombreCorto, frecuencia, norma, color, descripcion
+		}));
+		expect(textos).toEqual([
+			{ id: 'retencion', nombreCorto: 'Retención', frecuencia: 'Mensual', norma: '1.6.1.13.2.33', color: 'bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300', descripcion: 'Declaración y pago mensual de retención en la fuente. Aplica también para autorretención, impuesto de timbre e IVA retenido.' },
+			{ id: 'iva-bimestral', nombreCorto: 'IVA bim.', frecuencia: 'Bimestral', norma: '1.6.1.13.2.30', color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300', descripcion: 'Para grandes contribuyentes y responsables de IVA con ingresos brutos de 2025 iguales o superiores a 92.000 UVT. También aplica al impuesto nacional al consumo (INC).' },
+			{ id: 'iva-cuatrimestral', nombreCorto: 'IVA cuatri.', frecuencia: 'Cuatrimestral', norma: '1.6.1.13.2.31', color: 'bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300', descripcion: 'Para responsables de IVA con ingresos brutos de 2025 inferiores a 92.000 UVT.' },
+			{ id: 'renta-juridicas', nombreCorto: 'Renta jurídicas', frecuencia: 'Anual (2 cuotas)', norma: '1.6.1.13.2.12', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300', descripcion: 'Año gravable 2025. La cuota 1 es declaración y pago; la cuota 2 es solo pago. Si el saldo a pagar es menor a 41 UVT ($2.147.000), el pago vence en la fecha de la cuota 1. Quienes soliciten obras por impuestos tienen plazo hasta el 2026-05-29.' },
+			{ id: 'renta-grandes', nombreCorto: 'Renta grandes', frecuencia: 'Anual (3 cuotas)', norma: '1.6.1.13.2.11', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300', descripcion: 'Año gravable 2025. Cuota 1 solo pago; cuota 2 declaración y pago (y anticipo cuota 1 de puntos adicionales); cuota 3 solo pago (y anticipo cuota 2 de puntos adicionales).' },
+			{ id: 'renta-naturales', nombreCorto: 'Renta naturales', frecuencia: 'Anual', norma: '1.6.1.13.2.15', color: 'bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-300', descripcion: 'Año gravable 2025. La fecha depende de los dos últimos dígitos del NIT o cédula; cada par de números comparte fecha.' },
+			{ id: 'regimen-simple', nombreCorto: 'Simple', frecuencia: 'Bimestral y anual', norma: '1.6.1.13.2.50 a 1.6.1.13.2.52', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300', descripcion: 'Anticipos bimestrales, declaración anual consolidada e IVA anual consolidado del Simple. Las personas naturales del Simple con ingresos de hasta 3.500 UVT no pagan anticipos, solo la declaración anual.' },
 		]);
 	});
 });

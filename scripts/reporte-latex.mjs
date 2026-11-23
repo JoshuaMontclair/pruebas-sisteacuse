@@ -74,6 +74,13 @@ function partir(nombre) {
 }
 
 const marca = (r) => (r === 'Pasó' ? '\\textcolor{verde}{Pasó}' : `\\textcolor{rojo}{${r}}`);
+// Un defecto conocido «pasa» mientras exista; un caso pendiente (it.todo) no corre.
+const celda = (id, r) =>
+	id.startsWith('DEF-')
+		? `\\textcolor{naranja}{${r === 'Pasó' ? 'Defecto confirmado' : 'Defecto corregido'}}`
+		: r === 'Omitida'
+			? '\\textcolor{gris}{Pendiente}'
+			: marca(r);
 
 // ── Unitarias ───────────────────────────────────────────────────────────
 const unitarias = casos('reportes/unitarias/junit.xml');
@@ -83,10 +90,7 @@ const filasU = unitarias
 	.sort(ordenId)
 	.map((c) => {
 	const { id, descripcion } = c;
-	const defecto = id.startsWith('DEF-');
-	const resultado = defecto ? (c.resultado === 'Pasó' ? 'Defecto confirmado' : 'Defecto corregido') : c.resultado;
-	const celda = defecto ? `\\textcolor{naranja}{${resultado}}` : marca(resultado);
-	return `${latex(id)} & ${latex(descripcion)} & ${celda} & ${(c.segundos * 1000).toFixed(1)}\\\\`;
+	return `${latex(id)} & ${latex(descripcion)} & ${celda(id, c.resultado)} & ${(c.segundos * 1000).toFixed(1)}\\\\`;
 });
 writeFileSync(join(salida, 'tabla-unitarias.tex'), filasU.join('\n') + '\n');
 
@@ -102,45 +106,51 @@ for (const c of e2e) {
 }
 const filasE = [...porCaso.values()].sort(ordenId).map(
 	(f) =>
-		`${latex(f.id)} & ${latex(f.descripcion)} & ${marca(f.resultados['escritorio-chromium'] ?? '—')} & ${marca(
+		`${latex(f.id)} & ${latex(f.descripcion)} & ${celda(f.id, f.resultados['escritorio-chromium'] ?? '—')} & ${celda(
+			f.id,
 			f.resultados['movil-iphone'] ?? '—'
 		)} & ${(f.segundos * 1000).toFixed(0)}\\\\`
 );
 writeFileSync(join(salida, 'tabla-e2e.tex'), filasE.join('\n') + '\n');
 
 // ── Totales ─────────────────────────────────────────────────────────────
-const cuenta = (lista, pred) => lista.filter(pred).length;
-const esDefecto = (c) => partir(c.nombre).id.startsWith('DEF-');
-const porFuncionalidad = (f) => cuenta(unitarias, (c) => partir(c.nombre).id.startsWith(`CP-${f}-`));
 // Casos = identificadores distintos; ejecuciones = cada corrida (un caso
-// parametrizado o en dos navegadores cuenta una vez como caso).
-const casosDistintos = (lista, pred = () => true) =>
-	new Set(lista.map((c) => base(partir(c.nombre).id)).filter((id) => id && pred(id))).size;
-const esFuncional = (id) => !id.startsWith('DEF-');
-const casosUnit = (f) => casosDistintos(unitarias, (id) => id.startsWith(`CP-${f}-`));
-const etoEDe = (f) => casosDistintos(e2e, (id) => id.startsWith(`CP-${f}-`));
+// parametrizado o en dos navegadores cuenta una vez como caso). Los defectos
+// (DEF-xx) y los casos pendientes (it.todo) se cuentan aparte.
+const cuenta = (lista, pred) => lista.filter(pred).length;
+const idDe = (c) => partir(c.nombre).id;
+const esDefecto = (c) => idDe(c).startsWith('DEF-');
+const esPendiente = (c) => c.resultado === 'Omitida';
+const funcional = (c) => !esDefecto(c) && !esPendiente(c);
+const pasa = (c) => c.resultado === 'Pasó';
+const distintos = (lista) => new Set(lista.map((c) => base(idDe(c))).filter(Boolean)).size;
+const uF = unitarias.filter(funcional);
+const eF = e2e.filter(funcional);
+const de = (lista, f) => lista.filter((c) => idDe(c).startsWith(`CP-${f}-`));
 const macros = {
-	casosFUno: casosUnit('F1'),
-	casosFDos: casosUnit('F2'),
-	casosFTres: casosUnit('F3'),
-	casosFTresEtoE: etoEDe('F3'),
-	casosFCuatro: etoEDe('F4'),
-	casosFuncionales: casosDistintos(unitarias, esFuncional) + casosDistintos(e2e, esFuncional),
-	ejecucionesFuncionales: cuenta(unitarias, (c) => !esDefecto(c)) + e2e.length,
-	aprobadasFuncionales:
-		cuenta(unitarias, (c) => !esDefecto(c) && c.resultado === 'Pasó') + cuenta(e2e, (c) => c.resultado === 'Pasó'),
-	defectosDistintos: casosDistintos(unitarias, (id) => id.startsWith('DEF-')),
-	totalUnitarias: unitarias.length,
-	unitariasAprobadas: cuenta(unitarias, (c) => !esDefecto(c) && c.resultado === 'Pasó'),
-	unitariasFallidas: cuenta(unitarias, (c) => !esDefecto(c) && c.resultado !== 'Pasó'),
-	pruebasDefectos: cuenta(unitarias, esDefecto),
-	unitariasFUno: porFuncionalidad('F1'),
-	unitariasFDos: porFuncionalidad('F2'),
-	unitariasFTres: porFuncionalidad('F3'),
-	casosEtoE: porCaso.size,
-	totalEjecucionesEtoE: e2e.length,
-	etoEAprobadas: cuenta(e2e, (c) => c.resultado === 'Pasó'),
-	etoEFallidas: cuenta(e2e, (c) => c.resultado !== 'Pasó'),
+	casosFUno: distintos(de(uF, 'F1')),
+	casosFDos: distintos(de(uF, 'F2')),
+	casosFTres: distintos(de(uF, 'F3')),
+	casosFTresEtoE: distintos(de(eF, 'F3')),
+	casosFCuatro: distintos(de(eF, 'F4')),
+	casosFuncionales: distintos(uF) + distintos(eF),
+	ejecucionesFuncionales: uF.length + eF.length,
+	aprobadasFuncionales: cuenta(uF, pasa) + cuenta(eF, pasa),
+	casosPendientes: distintos(unitarias.filter(esPendiente)),
+	defectosDistintos: distintos([...unitarias, ...e2e].filter(esDefecto)),
+	pruebasDefectos: cuenta(unitarias, esDefecto) + cuenta(e2e, esDefecto),
+	pruebasDefectosEtoE: cuenta(e2e, esDefecto),
+	totalUnitarias: unitarias.filter((c) => !esPendiente(c)).length,
+	unitariasFuncionales: uF.length,
+	unitariasAprobadas: cuenta(uF, pasa),
+	unitariasFallidas: cuenta(uF, (c) => !pasa(c)),
+	unitariasFUno: de(uF, 'F1').length,
+	unitariasFDos: de(uF, 'F2').length,
+	unitariasFTres: de(uF, 'F3').length,
+	casosEtoE: distintos(eF),
+	totalEjecucionesEtoE: eF.length,
+	etoEAprobadas: cuenta(eF, pasa),
+	etoEFallidas: cuenta(eF, (c) => !pasa(c)),
 	tiempoUnitarias: unitarias.reduce((s, c) => s + c.segundos, 0).toFixed(2),
 	tiempoEtoE: e2e.reduce((s, c) => s + c.segundos, 0).toFixed(1)
 };
@@ -178,13 +188,13 @@ try {
 		mutDetectados: r.detectados,
 		mutSobrevivientes: r.sobrevivientes,
 		mutEquivalentes: r.equivalentes,
-		mutPresentacion: r.presentacion,
 		mutPuntaje: coma(r.puntaje),
-		mutPuntajeSinEq: coma(r.puntajeSinEquivalentes)
+		mutPuntajeSinEq: coma(r.puntajeSinEquivalentes),
+		mutMinimoArchivo: coma(r.minimoPorArchivo)
 	});
 	const filas = r.porArchivo.map(
 		(f) =>
-			`\\texttt{${latex(f.archivo.replace('sut/app/', '').replace('sut/', ''))}} & ${f.generados} & ${f.invalidos} & ${f.validos} & ${f.detectados} & ${f.sobrevivientes} & ${f.equivalentes} & ${f.presentacion} & ${coma(f.puntaje)}\\,\\%\\\\`
+			`\\texttt{${latex(f.archivo.replace('sut/app/', '').replace('sut/', ''))}} & ${f.generados} & ${f.invalidos} & ${f.validos} & ${f.detectados} & ${f.sobrevivientes} & ${f.equivalentes} & ${coma(f.puntaje)}\\,\\% & ${coma(f.puntajeSinEquivalentes)}\\,\\%\\\\`
 	);
 	writeFileSync(join(salida, 'tabla-stryker.tex'), filas.join('\n') + '\n');
 } catch {
