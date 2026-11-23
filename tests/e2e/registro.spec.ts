@@ -101,6 +101,46 @@ test.describe('F4 · paso 1: datos de la persona', () => {
 	});
 });
 
+// Arreglo ortogonal L8 (2^7) sobre los cinco campos del paso 1, como en la
+// Entrega I (CP-AO). Factores y columnas del L8: nombre (1), apellido (2),
+// correo (4), celular (6) y términos (7). Nivel 1 = válido, 2 = inválido
+// (vacío, celular de 9 dígitos o casilla sin marcar). Ocho corridas cubren
+// todas las parejas de niveles de cualquier par de factores.
+// El formulario valida en orden y muestra solo el primer error: el resultado
+// esperado es el mensaje del primer factor inválido (RN-10, RN-11).
+const L8: [string, number, number, number, number, number, string | null][] = [
+	['CP-F4-26', 1, 1, 1, 1, 1, null],
+	['CP-F4-27', 1, 1, 2, 2, 2, 'Ingresa tu correo electrónico.'],
+	['CP-F4-28', 1, 2, 1, 2, 2, 'Ingresa tu apellido.'],
+	['CP-F4-29', 1, 2, 2, 1, 1, 'Ingresa tu apellido.'],
+	['CP-F4-30', 2, 1, 1, 1, 2, 'Ingresa tu nombre.'],
+	['CP-F4-31', 2, 1, 2, 2, 1, 'Ingresa tu nombre.'],
+	['CP-F4-32', 2, 2, 1, 2, 1, 'Ingresa tu nombre.'],
+	['CP-F4-33', 2, 2, 2, 1, 2, 'Ingresa tu nombre.']
+];
+
+test.describe('F4 · paso 1: arreglo ortogonal L8', () => {
+	for (const [id, nombre, apellido, correo, celular, terminos, mensaje] of L8) {
+		const corrida = `${nombre}${apellido}${correo}${celular}${terminos}`;
+		test(`${id} AO corrida ${corrida}: ${mensaje ?? 'pasa al pago'}`, async ({ page, backend }) => {
+			await llenarPaso1(page, {
+				nombre: nombre === 1 ? VALIDOS.nombre : '',
+				apellido: apellido === 1 ? VALIDOS.apellido : '',
+				correo: correo === 1 ? VALIDOS.correo : '',
+				celular: celular === 1 ? VALIDOS.celular : '300123456',
+				acepta: terminos === 1
+			});
+			if (mensaje === null) {
+				await expect(paso2(page)).toBeVisible();
+			} else {
+				await expect(page.getByText(mensaje)).toBeVisible();
+				await expect(paso2(page)).toBeHidden();
+				expect(backend.llamadasA('/rest/v1/checkouts')).toHaveLength(0);
+			}
+		});
+	}
+});
+
 test.describe('F4 · paso 2: cupón de descuento', () => {
 	async function aplicarCupon(page: Page, codigo: string) {
 		await page.getByRole('button', { name: 'Tengo un cupón de descuento' }).click();
