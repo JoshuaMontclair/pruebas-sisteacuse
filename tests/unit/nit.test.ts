@@ -50,12 +50,24 @@ describe('F1 · calcularDV: módulo 11 de la DIAN', () => {
 		expect(calcularDV('800.197.268')).toBeNull();
 	});
 
-	it('CP-F1-21 el DV siempre está entre 0 y 9 (10 000 NIT consecutivos)', () => {
-		for (let n = 900_000_000; n < 900_010_000; n++) {
-			const dv = calcularDV(String(n));
-			expect(dv).not.toBeNull();
-			expect(dv).toBeGreaterThanOrEqual(0);
-			expect(dv).toBeLessThanOrEqual(9);
+	it('CP-F1-21 coincide con una implementación independiente del módulo 11 en 2 000 NIT de 6 a 10 dígitos', () => {
+		// Oráculo escrito por el equipo a partir de la regla publicada por la DIAN
+		// (RN-02), sin mirar el código de SisteAcuse: pesos como texto, recorrido
+		// de izquierda a derecha y residuo calculado aparte.
+		const PESOS_DIAN = '71 67 59 53 47 43 41 37 29 23 19 17 13 7 3'.split(' ').map(Number);
+		const oraculo = (nit: string) => {
+			const pesos = PESOS_DIAN.slice(PESOS_DIAN.length - nit.length);
+			const suma = [...nit].reduce((s, d, i) => s + Number(d) * pesos[i], 0);
+			const residuo = suma - 11 * Math.floor(suma / 11);
+			return residuo === 0 || residuo === 1 ? residuo : 11 - residuo;
+		};
+		// NIT reproducibles repartidos en todas las longitudes válidas.
+		let semilla = 20261127;
+		const aleatorio = () => (semilla = (semilla * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
+		for (let i = 0; i < 2000; i++) {
+			const largo = 6 + (i % 5);
+			const nit = String(1 + Math.floor(aleatorio() * 9)) + String(Math.floor(aleatorio() * 10 ** (largo - 1))).padStart(largo - 1, '0');
+			expect(calcularDV(nit), nit).toBe(oraculo(nit));
 		}
 	});
 });

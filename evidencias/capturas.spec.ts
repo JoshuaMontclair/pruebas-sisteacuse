@@ -8,7 +8,7 @@
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import type { Page } from '@playwright/test';
-import { pagoFirmado, test } from '../tests/e2e/entorno';
+import { HOY, servidorDePagos, test } from '../tests/e2e/entorno';
 
 const SALIDA = process.env.EVIDENCIAS_DIR ?? 'reportes/evidencias';
 
@@ -26,6 +26,7 @@ test.beforeEach(async ({ page }) => {
 const ruta = (nombre: string) => `${SALIDA}/${nombre}.png`;
 
 async function paso1(page: Page, acepta = true) {
+	await page.clock.setFixedTime(HOY);
 	await page.goto('/registro?plan=Plan%20Pyme');
 	await page.locator('#firstName').fill('Ana');
 	await page.locator('#lastName').fill('Prueba');
@@ -43,10 +44,7 @@ test('registro: error por no aceptar términos', async ({ page, backend: _ }) =>
 });
 
 test('registro: cupón aplicado', async ({ page, backend }) => {
-	backend.prepararPago = () => ({
-		status: 200,
-		cuerpo: { ok: true, gratis: false, desglose: { total: 180_000, cuponPct: 10, descuento: 20_000 } }
-	});
+	backend.prepararPago = servidorDePagos({ PROMO10: 10 });
 	await paso1(page);
 	await page.getByRole('button', { name: 'Tengo un cupón de descuento' }).click();
 	await page.getByLabel('Código de cupón').fill('promo10');
@@ -56,7 +54,7 @@ test('registro: cupón aplicado', async ({ page, backend }) => {
 });
 
 test('registro: cupón rechazado', async ({ page, backend }) => {
-	backend.prepararPago = () => ({ status: 400, cuerpo: { ok: false, codigo: 'cupon', error: 'cupon_invalido' } });
+	backend.prepararPago = servidorDePagos({ PROMO10: 10 });
 	await paso1(page);
 	await page.getByRole('button', { name: 'Tengo un cupón de descuento' }).click();
 	await page.getByLabel('Código de cupón').fill('VENCIDO');
@@ -74,7 +72,6 @@ test('registro: pago rechazado por Wompi', async ({ page, backend }) => {
 });
 
 test('registro: pago aprobado llega a /gracias', async ({ page, backend }) => {
-	backend.prepararPago = () => pagoFirmado(200_000);
 	await paso1(page);
 	await page.getByRole('button', { name: 'Pagar $200.000' }).click();
 	await page.waitForURL(/\/gracias/);

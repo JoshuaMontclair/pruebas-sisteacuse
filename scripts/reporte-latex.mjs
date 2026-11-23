@@ -107,7 +107,23 @@ writeFileSync(join(salida, 'tabla-e2e.tex'), filasE.join('\n') + '\n');
 const cuenta = (lista, pred) => lista.filter(pred).length;
 const esDefecto = (c) => partir(c.nombre).id.startsWith('DEF-');
 const porFuncionalidad = (f) => cuenta(unitarias, (c) => partir(c.nombre).id.startsWith(`CP-${f}-`));
+// Casos = identificadores distintos; ejecuciones = cada corrida (un caso
+// parametrizado o en dos navegadores cuenta una vez como caso).
+const casosDistintos = (lista, pred = () => true) => new Set(lista.map((c) => partir(c.nombre).id).filter((id) => id && pred(id))).size;
+const esFuncional = (id) => !id.startsWith('DEF-');
+const casosUnit = (f) => casosDistintos(unitarias, (id) => id.startsWith(`CP-${f}-`));
+const etoEDe = (f) => casosDistintos(e2e, (id) => id.startsWith(`CP-${f}-`));
 const macros = {
+	casosFUno: casosUnit('F1'),
+	casosFDos: casosUnit('F2'),
+	casosFTres: casosUnit('F3'),
+	casosFTresEtoE: etoEDe('F3'),
+	casosFCuatro: etoEDe('F4'),
+	casosFuncionales: casosDistintos(unitarias, esFuncional) + casosDistintos(e2e, esFuncional),
+	ejecucionesFuncionales: cuenta(unitarias, (c) => !esDefecto(c)) + e2e.length,
+	aprobadasFuncionales:
+		cuenta(unitarias, (c) => !esDefecto(c) && c.resultado === 'Pasó') + cuenta(e2e, (c) => c.resultado === 'Pasó'),
+	defectosDistintos: casosDistintos(unitarias, (id) => id.startsWith('DEF-')),
 	totalUnitarias: unitarias.length,
 	unitariasAprobadas: cuenta(unitarias, (c) => !esDefecto(c) && c.resultado === 'Pasó'),
 	unitariasFallidas: cuenta(unitarias, (c) => !esDefecto(c) && c.resultado !== 'Pasó'),

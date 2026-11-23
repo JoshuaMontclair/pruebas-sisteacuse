@@ -9,7 +9,9 @@
     "test:e2e": "playwright test",
     "test": "npm run test:cobertura && npm run test:e2e",
     "sitio": "node scripts/servir-sitio.mjs",
-    "reporte:e2e": "playwright show-report reportes/e2e"
+    "reporte:e2e": "playwright show-report reportes/e2e",
+    "test:mutantes": "node scripts/mutantes.mjs",
+    "cobertura:f3": "node scripts/cobertura-en-alcance.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",

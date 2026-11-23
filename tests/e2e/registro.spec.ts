@@ -1,14 +1,23 @@
 // F4 · Registro de una cuenta nueva con compra del plan (sitio público, /registro)
 //
 // Flujo: datos de la persona → cupón opcional → pago en Wompi → /gracias.
-// El backend y Wompi son dobles de prueba (ver entorno.ts). Técnicas: tabla de
-// decisión sobre las validaciones del paso 1, valores límite sobre el celular
-// y particiones de equivalencia sobre las respuestas del servidor de pagos.
+// El backend y Wompi son dobles de prueba (ver entorno.ts): el doble cotiza
+// con cotizar(), la función real del servidor. Técnicas: tabla de decisión
+// sobre las validaciones del paso 1, valores límite sobre el celular y
+// particiones de equivalencia sobre las respuestas del servidor de pagos.
+//
+// El reloj se fija en HOY (22-nov-2026) y los montos esperados salen del
+// catálogo vigente ese día: si los precios cambian, las pruebas no se rompen.
 
-import { expect, pagoFirmado, test } from './entorno';
+import { errorDePagos, expect, HOY, servidorDePagos, test } from './entorno';
 import type { Page } from '@playwright/test';
+import { aplicarCupon as descuento, catalogoEn } from '../../sut/sitio-pagos/pagos';
 
 const PYME = '/registro?plan=Plan%20Pyme';
+const PRECIO = catalogoEn(HOY).planes.PYME.precio;
+const CON_CUPON = descuento(PRECIO, 10);
+const pesos = (n: number) => '$' + n.toLocaleString('es-CO');
+const pagar = (page: Page, monto = PRECIO) => page.getByRole('button', { name: `Pagar ${pesos(monto)}` });
 
 type Datos = { nombre: string; apellido: string; correo: string; celular: string; acepta: boolean };
 const VALIDOS: Datos = {
@@ -21,11 +30,12 @@ const VALIDOS: Datos = {
 
 async function llenarPaso1(page: Page, datos: Partial<Datos> = {}) {
 	const d = { ...VALIDOS, ...datos };
+	await page.clock.setFixedTime(HOY);
 	await page.goto(PYME);
-	await page.locator('#firstName').fill(d.nombre);
-	await page.locator('#lastName').fill(d.apellido);
-	await page.locator('#reg-email').fill(d.correo);
-	await page.locator('#phone').fill(d.celular);
+	await page.getByLabel('Nombre', { exact: true }).fill(d.nombre);
+	await page.getByLabel('Apellido', { exact: true }).fill(d.apellido);
+	await page.getByLabel('Correo electrónico', { exact: true }).fill(d.correo);
+	await page.getByLabel('Celular', { exact: true }).fill(d.celular);
 	if (d.acepta) await page.getByRole('checkbox', { name: /Acepto los términos/ }).check();
 	await page.getByRole('button', { name: 'Continuar al pago' }).click();
 }
@@ -42,7 +52,7 @@ test.describe('F4 · paso 1: datos de la persona', () => {
 		expect(backend.llamadasA('/rest/v1/checkouts')[0].cuerpo).toMatchObject({
 			flujo: 'registro',
 			plan: 'Plan Pyme',
-			valor: 200_000,
+			valor: PRECIO,
 			email: 'ana@prueba.local',
 			nombre: 'Ana Prueba',
 			celular: '3001234567'
@@ -78,7 +88,7 @@ test.describe('F4 · paso 1: datos de la persona', () => {
 
 	test('CP-F4-24 correo sin dominio: lo detiene la validación del navegador (type="email")', async ({ page, backend }) => {
 		await llenarPaso1(page, { correo: 'juanperez' });
-		const correo = page.locator('#reg-email');
+		const correo = page.getByLabel('Correo electrónico', { exact: true });
 		expect(await correo.evaluate((e: HTMLInputElement) => e.validity.typeMismatch)).toBe(true);
 		await expect(paso2(page)).toBeHidden();
 		expect(backend.llamadasA('/rest/v1/checkouts')).toHaveLength(0);
@@ -106,14 +116,11 @@ test.describe('F4 · paso 2: cupón de descuento', () => {
 	});
 
 	test('CP-F4-12 cupón válido: lo cotiza el servidor (en mayúsculas) y el total baja', async ({ page, backend }) => {
-		backend.prepararPago = () => ({
-			status: 200,
-			cuerpo: { ok: true, gratis: false, desglose: { total: 180_000, cuponPct: 10, descuento: 20_000 } }
-		});
+		backend.prepararPago = servidorDePagos({ PROMO10: 10 });
 		await llenarPaso1(page);
 		await aplicarCupon(page, 'promo10');
 
-		await expect(page.getByRole('button', { name: 'Pagar $180.000' })).toBeVisible();
+		await expect(pagar(page, CON_CUPON)).toBeVisible();
 		expect(backend.llamadasA('/preparar-pago')[0].cuerpo).toEqual({
 			flujo: 'registro',
 			plan: 'Plan Pyme',
@@ -124,20 +131,19 @@ test.describe('F4 · paso 2: cupón de descuento', () => {
 	});
 
 	test('CP-F4-13 cupón rechazado por el servidor: mensaje claro y el total no cambia', async ({ page, backend }) => {
-		backend.prepararPago = () => ({ status: 400, cuerpo: { ok: false, codigo: 'cupon', error: 'cupon_invalido' } });
+		backend.prepararPago = servidorDePagos({ PROMO10: 10 });
 		await llenarPaso1(page);
 		await aplicarCupon(page, 'VENCIDO');
 
 		await expect(page.getByRole('alert')).toHaveText('Cupón inválido o vencido.');
-		await expect(page.getByRole('button', { name: 'Pagar $200.000' })).toBeVisible();
+		await expect(pagar(page)).toBeVisible();
 	});
 });
 
 test.describe('F4 · paso 2: pago', () => {
 	test('CP-F4-14 pago aprobado: firma en el servidor, abre Wompi con el monto firmado y lleva a /gracias', async ({ page, backend }) => {
-		backend.prepararPago = () => pagoFirmado(200_000);
 		await llenarPaso1(page);
-		await page.getByRole('button', { name: 'Pagar $200.000' }).click();
+		await pagar(page).click();
 
 		await expect(page).toHaveURL(/\/gracias/);
 		const pedido = backend.llamadasA('/preparar-pago').at(-1)!.cuerpo;
@@ -147,11 +153,25 @@ test.describe('F4 · paso 2: pago', () => {
 		const wompi = await page.evaluate(() => (window as any).__wompi.config);
 		expect(wompi).toMatchObject({
 			currency: 'COP',
-			amountInCents: 20_000_000,
+			amountInCents: PRECIO * 100,
 			reference: 'SA-REG3-PYME-0-1795398288-prueba',
 			signature: { integrity: 'firma-de-prueba' },
 			customerData: { email: 'ana@prueba.local', fullName: 'Ana Prueba', phoneNumber: '3001234567', phoneNumberPrefix: '+57' }
 		});
+	});
+
+	test('CP-F4-25 pago con cupón: Wompi se abre con el monto con descuento que firmó el servidor', async ({ page, backend }) => {
+		backend.prepararPago = servidorDePagos({ PROMO10: 10 });
+		await llenarPaso1(page);
+		await page.getByRole('button', { name: 'Tengo un cupón de descuento' }).click();
+		await page.getByLabel('Código de cupón').fill('PROMO10');
+		await page.getByRole('button', { name: 'Aplicar' }).click();
+		await pagar(page, CON_CUPON).click();
+
+		await expect(page).toHaveURL(/\/gracias/);
+		expect(backend.llamadasA('/preparar-pago').at(-1)!.cuerpo).toMatchObject({ cupon: 'PROMO10' });
+		const wompi = await page.evaluate(() => (window as any).__wompi.config);
+		expect(wompi).toMatchObject({ amountInCents: CON_CUPON * 100, reference: 'SA-REG3-PYME-PROMO10-1795398288-prueba' });
 	});
 
 	const ESTADOS: [string, string, string][] = [
@@ -164,7 +184,7 @@ test.describe('F4 · paso 2: pago', () => {
 		test(`${id} Wompi responde ${estado}: se queda en el pago con el mensaje correcto`, async ({ page, backend }) => {
 			backend.resultadoWompi = estado;
 			await llenarPaso1(page);
-			await page.getByRole('button', { name: 'Pagar $200.000' }).click();
+			await pagar(page).click();
 			await expect(page.getByText(mensaje)).toBeVisible();
 			await expect(page).not.toHaveURL(/\/gracias/);
 		});
@@ -173,27 +193,27 @@ test.describe('F4 · paso 2: pago', () => {
 	test('CP-F4-19 la persona cierra Wompi sin pagar: puede volver a intentarlo', async ({ page, backend }) => {
 		backend.resultadoWompi = null;
 		await llenarPaso1(page);
-		const pagar = page.getByRole('button', { name: 'Pagar $200.000' });
-		await pagar.click();
-		await expect(pagar).toBeEnabled();
+		const boton = pagar(page);
+		await boton.click();
+		await expect(boton).toBeEnabled();
 		await expect(page).not.toHaveURL(/\/gracias/);
 	});
 
 	test('CP-F4-20 pagos caídos (503): pide escribir por WhatsApp y no abre Wompi', async ({ page, backend }) => {
-		backend.prepararPago = () => ({ status: 503, cuerpo: { ok: false, codigo: 'no_disponible', error: 'x' } });
+		backend.prepararPago = () => errorDePagos(503, 'no_disponible', 'x');
 		await llenarPaso1(page);
-		await page.getByRole('button', { name: 'Pagar $200.000' }).click();
-		await expect(page.getByText('Los pagos no están disponibles en este momento.')).toBeVisible();
+		await pagar(page).click();
+		await expect(
+			page.getByText('Los pagos no están disponibles en este momento. Escríbenos por WhatsApp y te ayudamos.')
+		).toBeVisible();
 		expect(await page.evaluate(() => (window as any).__wompi?.abierto ?? false)).toBe(false);
 	});
 
 	test('CP-F4-21 el correo ya tiene cuenta (409): muestra el aviso del servidor', async ({ page, backend }) => {
-		backend.prepararPago = () => ({
-			status: 409,
-			cuerpo: { ok: false, codigo: 'ya_tiene_cuenta', error: 'Este correo ya tiene una cuenta con un plan activo.' }
-		});
+		backend.prepararPago = () =>
+			errorDePagos(409, 'ya_tiene_cuenta', 'Este correo ya tiene una cuenta con un plan activo.');
 		await llenarPaso1(page);
-		await page.getByRole('button', { name: 'Pagar $200.000' }).click();
+		await pagar(page).click();
 		await expect(page.getByText('Este correo ya tiene una cuenta con un plan activo.')).toBeVisible();
 	});
 });
@@ -201,5 +221,5 @@ test.describe('F4 · paso 2: pago', () => {
 test('CP-F4-22 un plan que no existe en la URL no abre el formulario de compra', async ({ page }) => {
 	await page.goto('/registro?plan=Plan%20Inventado');
 	await expect(page).toHaveTitle('Plan no disponible — SisteAcuse');
-	await expect(page.locator('#firstName')).toHaveCount(0);
+	await expect(page.getByLabel('Nombre', { exact: true })).toHaveCount(0);
 });

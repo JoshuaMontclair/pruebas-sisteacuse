@@ -16,7 +16,7 @@ const pesos = (n: number) => '$' + n.toLocaleString('es-CO');
 const ESCENARIOS: [string, string, string, Catalogo, boolean][] = [
 	['CP-F3-E01', 'VL · 31-oct 23:59 (un minuto antes del corte)', '2026-10-31T23:59:00-05:00', CATALOGO_BASE_2026, false],
 	['CP-F3-E02', 'VL · 1-nov 00:00:30 (recién pasado el corte)', '2026-11-01T00:00:30-05:00', CATALOGO_NOV_2026, true],
-	['CP-F3-E03', 'hoy (22-nov-2026)', '2026-11-22T10:00:00-05:00', CATALOGO_NOV_2026, true]
+	['CP-F3-E03', 'fecha fija 22-nov-2026', '2026-11-22T10:00:00-05:00', CATALOGO_NOV_2026, true]
 ];
 
 for (const [id, caso, instante, cat, conUltra] of ESCENARIOS) {
