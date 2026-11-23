@@ -4,3 +4,4 @@ reportes/
 playwright-report/
 test-results/
 .DS_Store
+.stryker-tmp/

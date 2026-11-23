@@ -8,7 +8,7 @@ on:
 jobs:
   pruebas:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
@@ -24,6 +24,12 @@ jobs:
 
       - name: Pruebas unitarias con cobertura (F1, F2, F3)
         run: npm run test:cobertura
+
+      - name: Criterio S3 · cobertura de las funciones en alcance de F3
+        run: npm run cobertura:f3
+
+      - name: Criterio S5 · pruebas de mutación (Stryker)
+        run: npm run test:mutacion
 
       - name: Navegadores de Playwright
         run: npx playwright install --with-deps chromium webkit

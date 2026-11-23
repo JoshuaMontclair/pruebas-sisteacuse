@@ -7,6 +7,8 @@
 //   resumen.tex          macros con los totales (\totalUnitarias, \totalEjecucionesEtoE, …)
 //   tabla-unitarias.tex  una fila por prueba unitaria
 //   tabla-e2e.tex        una fila por caso E2E, con el resultado en cada navegador
+//   tabla-stryker.tex    puntaje de mutación de Stryker por archivo
+//   tabla-mutantes.tex   mutantes dirigidos (scripts/mutantes.mjs)
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -52,7 +54,10 @@ function latex(s) {
 		.replace(/[“”]/g, '"');
 }
 
-const ID = /\b(CP-F\d-E?\d+|DEF-\d+)\b/;
+// Un caso parametrizado lleva un sufijo por ejecución (CP-F2-24.3): para contar
+// casos se usa el identificador sin el sufijo.
+const ID = /\b(CP-F\d-E?\d+(?:\.\d+)?|DEF-\d+)\b/;
+const base = (id) => id.replace(/\.\d+$/, '');
 
 function partir(nombre) {
 	const partes = nombre.split(' > ');
@@ -72,7 +77,7 @@ const marca = (r) => (r === 'Pasó' ? '\\textcolor{verde}{Pasó}' : `\\textcolor
 
 // ── Unitarias ───────────────────────────────────────────────────────────
 const unitarias = casos('reportes/unitarias/junit.xml');
-const ordenId = (a, b) => a.id.localeCompare(b.id, 'es', { numeric: true });
+const ordenId = (a, b) => a.id.localeCompare(b.id, 'en', { numeric: true });
 const filasU = unitarias
 	.map((c) => ({ ...c, ...partir(c.nombre) }))
 	.sort(ordenId)
@@ -109,7 +114,8 @@ const esDefecto = (c) => partir(c.nombre).id.startsWith('DEF-');
 const porFuncionalidad = (f) => cuenta(unitarias, (c) => partir(c.nombre).id.startsWith(`CP-${f}-`));
 // Casos = identificadores distintos; ejecuciones = cada corrida (un caso
 // parametrizado o en dos navegadores cuenta una vez como caso).
-const casosDistintos = (lista, pred = () => true) => new Set(lista.map((c) => partir(c.nombre).id).filter((id) => id && pred(id))).size;
+const casosDistintos = (lista, pred = () => true) =>
+	new Set(lista.map((c) => base(partir(c.nombre).id)).filter((id) => id && pred(id))).size;
 const esFuncional = (id) => !id.startsWith('DEF-');
 const casosUnit = (f) => casosDistintos(unitarias, (id) => id.startsWith(`CP-${f}-`));
 const etoEDe = (f) => casosDistintos(e2e, (id) => id.startsWith(`CP-${f}-`));
@@ -146,7 +152,46 @@ writeFileSync(
 );
 console.log(macros);
 
-// ── Mutantes (si se corrió npm run test:mutantes) ───────────────────────
+// ── Cobertura en alcance (npm run cobertura:f3) ──────────────────────────
+const coma = (x, d = 1) => x.toFixed(d).replace('.', '{,}');
+const extra = {};
+try {
+	const c = JSON.parse(readFileSync('reportes/cobertura/en-alcance.json', 'utf8'));
+	Object.assign(extra, {
+		coberturaFunciones: `${c.ejecutadas}/${c.funciones}`,
+		coberturaSentencias: coma(c.sentencias),
+		coberturaRamas: coma(c.ramas),
+		coberturaMinFuncion: c.minimo.funcion,
+		coberturaMinRamas: coma(c.minimo.ramas)
+	});
+} catch {
+	console.warn('Sin reportes/cobertura/en-alcance.json: corre npm run cobertura:f3.');
+}
+
+// ── Stryker (npm run test:mutacion) ─────────────────────────────────────
+try {
+	const r = JSON.parse(readFileSync('reportes/mutacion/resumen.json', 'utf8'));
+	Object.assign(extra, {
+		mutGenerados: r.generados,
+		mutInvalidos: r.invalidos,
+		mutValidos: r.validos,
+		mutDetectados: r.detectados,
+		mutSobrevivientes: r.sobrevivientes,
+		mutEquivalentes: r.equivalentes,
+		mutPresentacion: r.presentacion,
+		mutPuntaje: coma(r.puntaje),
+		mutPuntajeSinEq: coma(r.puntajeSinEquivalentes)
+	});
+	const filas = r.porArchivo.map(
+		(f) =>
+			`\\texttt{${latex(f.archivo.replace('sut/', ''))}} & ${f.generados} & ${f.invalidos} & ${f.validos} & ${f.detectados} & ${f.sobrevivientes} & ${f.equivalentes} & ${f.presentacion} & ${coma(f.puntaje)}\\,\\%\\\\`
+	);
+	writeFileSync(join(salida, 'tabla-stryker.tex'), filas.join('\n') + '\n');
+} catch {
+	console.warn('Sin reportes/mutacion/resumen.json: corre npm run test:mutacion.');
+}
+
+// ── Mutantes dirigidos (npm run test:mutantes) ──────────────────────────
 try {
 	const m = JSON.parse(readFileSync('reportes/mutantes.json', 'utf8'));
 	const estado = (r) =>
@@ -156,13 +201,18 @@ try {
 				? '\\textcolor{verde}{Detectado}'
 				: '\\textcolor{rojo}{No detectado}';
 	const filas = [...m.resultados]
-		.sort((a, b) => a.id.localeCompare(b.id))
+		.sort((a, b) => a.id.localeCompare(b.id, 'en', { numeric: true }))
 		.map((r) => `${r.id} & ${r.func} & \\texttt{${latex(r.archivo.replace('sut/', ''))}} & ${latex(r.descripcion)} & ${estado(r)}\\\\`);
 	writeFileSync(join(salida, 'tabla-mutantes.tex'), filas.join('\n') + '\n');
-	writeFileSync(
-		join(salida, 'mutantes.tex'),
-		`\\newcommand{\\mutantesDetectados}{${m.eliminados}}\n\\newcommand{\\mutantesTotal}{${m.total}}\n`
-	);
+	Object.assign(extra, { mutantesDetectados: m.eliminados, mutantesTotal: m.total });
 } catch {
-	console.warn('Sin reportes/mutantes.json: corre npm run test:mutantes para la tabla de mutantes.');
+	console.warn('Sin reportes/mutantes.json: corre npm run test:mutantes para la tabla de mutantes dirigidos.');
 }
+
+writeFileSync(
+	join(salida, 'mutantes.tex'),
+	Object.entries(extra)
+		.map(([k, v]) => `\\newcommand{\\${k}}{${v}}`)
+		.join('\n') + '\n'
+);
+console.log(extra);

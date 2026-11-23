@@ -3,17 +3,27 @@
 // El sitio se compiló con VITE_SUPABASE_URL=http://supabase.prueba.local, un
 // host que no existe. Aquí:
 //   - el backend (Supabase) responde con un doble de prueba que registra cada
-//     llamada, para poder verificar QUÉ envía el sitio. La Edge Function
-//     preparar-pago no se inventa: el doble cotiza con cotizar(), la misma
-//     función del servidor (sut/sitio-pagos/pagos.ts); lo único simulado es la
-//     base de datos (cupones) y la firma;
+//     llamada, para poder verificar QUÉ envía el sitio. En la Edge Function
+//     preparar-pago, el monto y la validez del cupón salen de las funciones
+//     reales del servidor (sut/sitio-pagos/pagos.ts): cotizar(),
+//     normalizarCupon() y evaluarCupon(). Lo simulado es: la tabla de cupones
+//     y sus usos, la firma de integridad, la verificación de «ya tiene
+//     cuenta» (una prueba la fuerza con errorDePagos) y la tabla checkouts
+//     (siempre responde 201);
 //   - la pasarela Wompi se reemplaza por un widget falso que no cobra nada y
 //     devuelve el resultado que la prueba elija (APPROVED, DECLINED…);
 //   - cualquier otra petición externa (analítica, Meta, YouTube…) se bloquea.
 // Así ninguna prueba puede tocar producción ni hacer un cobro real.
 
 import { test as base, expect } from '@playwright/test';
-import { codigoPlan, cotizar } from '../../sut/sitio-pagos/pagos';
+import {
+	codigoPlan,
+	cotizar,
+	evaluarCupon,
+	type FilaCupon,
+	MENSAJE_CUPON_INVALIDO,
+	normalizarCupon
+} from '../../sut/sitio-pagos/pagos';
 
 export const HOST_BACKEND = 'supabase.prueba.local';
 
@@ -42,29 +52,54 @@ export type Backend = {
 };
 
 /**
- * preparar-pago con la lógica real del servidor: cotiza con cotizar() y, si no
- * es solo una cotización, «firma» el pago. `cupones` simula la tabla de cupones
- * de la base de datos: código → porcentaje (un código que no está es inválido).
+ * preparar-pago con la lógica real del servidor: normaliza y evalúa el cupón
+ * con normalizarCupon() y evaluarCupon(), cotiza con cotizar() y, si no es solo
+ * una cotización, «firma» el pago.
+ *
+ * `cupones` simula la tabla de cupones de la base: código → porcentaje, o la
+ * fila completa (vencimiento, candado de plan, usos…). Un código que no está
+ * es inexistente. `montoFirmadoCents` permite que el servidor firme un monto
+ * distinto al cotizado, para comprobar que el sitio cobra el del servidor.
  */
-export function servidorDePagos(cupones: Record<string, number> = {}) {
+export function servidorDePagos(
+	cupones: Record<string, number | Partial<FilaCupon>> = {},
+	opciones: { montoFirmadoCents?: number; usos?: Record<string, number> } = {}
+) {
+	const fila = (codigo: string): FilaCupon | null => {
+		const dato = cupones[codigo];
+		if (dato === undefined) return null;
+		const base = { id: `cupon-${codigo}`, code: codigo, discount_percent: 0, is_active: true };
+		return typeof dato === 'number' ? { ...base, discount_percent: dato } : { ...base, ...dato };
+	};
+	const rechazoCupon: Respuesta = { status: 400, cuerpo: { ok: false, codigo: 'cupon', error: MENSAJE_CUPON_INVALIDO } };
+
 	return (pedido: any): Respuesta => {
 		const plan = codigoPlan(pedido?.plan);
 		if (!plan) return { status: 400, cuerpo: { ok: false, codigo: 'plan_invalido', error: 'Plan inválido.' } };
-		const cupon = pedido.cupon ?? null;
-		if (cupon !== null && !(cupon in cupones)) {
-			return { status: 400, cuerpo: { ok: false, codigo: 'cupon', error: 'Cupón inválido o vencido.' } };
+
+		let cupon: string | null = null;
+		let pct = 0;
+		if (pedido.cupon !== null && pedido.cupon !== undefined) {
+			cupon = normalizarCupon(pedido.cupon);
+			const f = cupon ? fila(cupon) : null;
+			if (!f) return rechazoCupon;
+			const uso = { usos: opciones.usos?.[cupon!] ?? 0, yaUsadoPorCliente: false, plan };
+			if (evaluarCupon(f, uso, HOY) !== null) return rechazoCupon;
+			pct = f.discount_percent;
 		}
-		const c = cotizar({ flujo: 'registro', plan }, { ahora: HOY, cuponPct: cupon ? cupones[cupon] : 0, cupon });
+
+		const c = cotizar({ flujo: 'registro', plan }, { ahora: HOY, cuponPct: pct, cupon });
 		if (!c.ok) return { status: c.status, cuerpo: { ok: false, codigo: c.codigo, error: c.mensaje } };
 		if (pedido.solo_cotizar) return { status: 200, cuerpo: { ok: true, gratis: false, desglose: c.desglose } };
+		const monto = opciones.montoFirmadoCents ?? c.montoCents;
 		return {
 			status: 200,
 			cuerpo: {
 				ok: true,
-				gratis: c.montoCents === 0,
+				gratis: monto === 0,
 				desglose: c.desglose,
 				referencia: `SA-REG3-${plan}-${cupon ?? 0}-1795398288-prueba`,
-				amountInCents: c.montoCents,
+				amountInCents: monto,
 				currency: 'COP',
 				firma: 'firma-de-prueba',
 				publicKey: 'pub_test_prueba'
@@ -139,6 +174,7 @@ function widgetFalso(estado: string | null): string {
 			constructor(config) { window.__wompi = { config, abierto: false }; }
 			open(alTerminar) {
 				window.__wompi.abierto = true;
+				window.__aperturasWompi = (window.__aperturasWompi ?? 0) + 1;
 				const estado = ${JSON.stringify(estado)};
 				setTimeout(() => alTerminar(estado
 					? { transaction: { id: 'tx-prueba', status: estado, reference: window.__wompi.config.reference } }

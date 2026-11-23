@@ -53,7 +53,11 @@ describe('DEF-02 · F3 · las reglas de empresas aceptan valores que no son núm
 });
 
 describe('DEF-03 · F2 · esDiaHabil da por hábiles fechas que no existen', () => {
-	for (const fecha of ['2026-02-30', '2026-13-01', '2026-2-3']) {
+	// Date.parse corre el 30 de febrero al 2 de marzo (lunes) y para el mes 13
+	// devuelve NaN, que no es sábado ni domingo ni festivo: en los dos casos la
+	// función responde «hábil» en vez de rechazar la fecha. (Una fecha bien escrita pero sin ceros, como 2026-2-3, no entra
+	// aquí: es un problema de formato, no una fecha inexistente.)
+	for (const fecha of ['2026-02-30', '2026-13-01']) {
 		it(`«${fecha}» es hábil (correcto: false o error de fecha inválida)`, () => {
 			expect(esDiaHabil(fecha)).toBe(true);
 		});
@@ -63,5 +67,14 @@ describe('DEF-03 · F2 · esDiaHabil da por hábiles fechas que no existen', () 
 describe('DEF-04 · F1 · dvCoincide acepta un DV escrito en hexadecimal', () => {
 	it('«0x4» coincide con el DV 4 de la DIAN (correcto: false)', () => {
 		expect(dvCoincide('800197268', '0x4')).toBe(true);
+	});
+});
+
+describe('DEF-05 · F1 · dvCoincide acepta un DV en blanco cuando el DV real es 0', () => {
+	// String("   ").trim() es "" y Number("") vale 0. El caso de la cadena vacía
+	// sí está cubierto (CP-F1-37); el de solo espacios no. Lo encontró el
+	// análisis de un mutante sobreviviente de Stryker.
+	it('«   » coincide con el DV 0 de 900000009 (correcto: false)', () => {
+		expect(dvCoincide('900000009', '   ')).toBe(true);
 	});
 });

@@ -18,7 +18,16 @@ describe('F2 · domingoDePascua', () => {
 		['CP-F2-03', 2026, '2026-04-05'],
 		['CP-F2-04', 2027, '2027-03-28'],
 		['CP-F2-05 VL · fecha más tardía posible (25 abr)', 2038, '2038-04-25'],
-		['CP-F2-06 VL · fecha más temprana posible (22 mar)', 2285, '2285-03-22']
+		['CP-F2-06 VL · fecha más temprana posible (22 mar)', 2285, '2285-03-22'],
+		// Años con a = año mod 19 = 0 (2014, 2033) o con la corrección m = 1 del
+		// algoritmo (2049, 2076): las ramas que los años anteriores no ejercitan.
+		// Encontrados con pruebas de mutación; fechas de las tablas publicadas.
+		['CP-F2-31 año con a = 0', 2014, '2014-04-20'],
+		['CP-F2-32 año con a = 0', 2033, '2033-04-17'],
+		['CP-F2-33 año con corrección m = 1', 2049, '2049-04-18'],
+		['CP-F2-34 año con corrección m = 1', 2076, '2076-04-19'],
+		['CP-F2-35 Pascua en marzo', 2005, '2005-03-27'],
+		['CP-F2-36 Pascua el 1 de abril, en el borde entre marzo y abril', 2029, '2029-04-01']
 	])('%s · %i', (_id, anio, fecha) => {
 		expect(domingoDePascua(anio)).toBe(fecha);
 	});
@@ -86,7 +95,7 @@ describe('F2 · diaHabil(año, mes, n)', () => {
 	it('CP-F2-19 VL · el último día hábil del mes sí existe; el siguiente es un error', () => {
 		// Febrero de 2026 tiene 20 días hábiles (sin festivos).
 		expect(diaHabil(2026, 2, 20)).toBe('2026-02-27');
-		expect(() => diaHabil(2026, 2, 21)).toThrow('no tiene 21 días hábiles');
+		expect(() => diaHabil(2026, 2, 21)).toThrow('2026-02 no tiene 21 días hábiles');
 	});
 
 	it.each([
@@ -105,8 +114,9 @@ describe('F2 · vencimientos 2026 contra la tabla de Actualícese (oráculo)', (
 		expect(motor.map((o) => o.id)).toEqual(OBLIGACIONES_2026.map((o) => o.id));
 	});
 
-	for (const esperada of OBLIGACIONES_2026) {
-		it(`CP-F2-24 ${esperada.nombre}: todas las fechas coinciden`, () => {
+	// Un caso con una ejecución por obligación: CP-F2-24.1 … CP-F2-24.7.
+	OBLIGACIONES_2026.forEach((esperada, n) => {
+		it(`CP-F2-24.${n + 1} ${esperada.nombre}: todas las fechas coinciden`, () => {
 			const calculada = motor.find((o) => o.id === esperada.id)!;
 			expect(calculada.periodos).toHaveLength(esperada.periodos.length);
 			esperada.periodos.forEach((pe, i) => {
@@ -116,7 +126,7 @@ describe('F2 · vencimientos 2026 contra la tabla de Actualícese (oráculo)', (
 				}
 			});
 		});
-	}
+	});
 
 	it('CP-F2-25 se comparan las 440 fechas publicadas', () => {
 		const total = OBLIGACIONES_2026.flatMap((o) => o.periodos).flatMap((p) => p.vencimientos).length;
@@ -146,8 +156,9 @@ describe('F2 · «calendario 2027» = lo que vence dentro de 2027', () => {
 });
 
 describe('F2 · propiedades del calendario de cualquier año', () => {
-	for (const anio of [2026, 2027, 2028]) {
-		it(`CP-F2-26 ${anio}: todo vence en día hábil`, () => {
+	// Dos casos con una ejecución por año: CP-F2-26.1 … 26.3 y CP-F2-27.1 … 27.3.
+	[2026, 2027, 2028].forEach((anio, n) => {
+		it(`CP-F2-26.${n + 1} ${anio}: todo vence en día hábil`, () => {
 			for (const ob of calendarioDelAnio(anio)) {
 				for (const p of ob.periodos) {
 					for (const v of p.vencimientos) {
@@ -157,7 +168,7 @@ describe('F2 · propiedades del calendario de cualquier año', () => {
 			}
 		});
 
-		it(`CP-F2-27 ${anio}: con escala por último dígito, las fechas crecen del 1 al 0`, () => {
+		it(`CP-F2-27.${n + 1} ${anio}: con escala por último dígito, las fechas crecen del 1 al 0`, () => {
 			for (const ob of calendarioDelAnio(anio).filter((o) => o.tipoDigito === 'ultimo1')) {
 				for (const p of ob.periodos) {
 					const fechas = p.vencimientos.map((v) => v.fecha);
@@ -166,5 +177,97 @@ describe('F2 · propiedades del calendario de cualquier año', () => {
 				}
 			}
 		});
-	}
+	});
+});
+
+// Lo que la persona ve y lo que la app guarda de cada periodo: la clave es la
+// llave con la que se registra si ya se presentó o pagó (no puede cambiar), y
+// el tipo de dígito decide si la fecha se busca con el último o los dos últimos
+// dígitos del NIT. Agregados a partir de las pruebas de mutación.
+describe('F2 · claves, nombres y tipo de dígito de cada periodo (2026)', () => {
+	const cal = calendarioDelAnio(2026);
+	const ob = (id: string) => cal.find((o) => o.id === id)!;
+	const claves = (id: string) => ob(id).periodos.map((p) => p.clave);
+	const nombres = (id: string) => ob(id).periodos.map((p) => p.nombre);
+
+	it('CP-F2-37 renta de personas naturales usa los dos últimos dígitos; las demás, el último (Decreto 2229 de 2023)', () => {
+		expect(Object.fromEntries(cal.map((o) => [o.id, o.tipoDigito]))).toEqual({
+			retencion: 'ultimo1',
+			'iva-bimestral': 'ultimo1',
+			'iva-cuatrimestral': 'ultimo1',
+			'renta-juridicas': 'ultimo1',
+			'renta-grandes': 'ultimo1',
+			'renta-naturales': 'ultimo2',
+			'regimen-simple': 'ultimo1'
+		});
+	});
+
+	it('CP-F2-38 claves estables: mes, bimestre, cuatrimestre, anticipo y año gravable', () => {
+		expect(claves('retencion')).toEqual(Array.from({ length: 12 }, (_, i) => `2026-${String(i + 1).padStart(2, '0')}`));
+		expect(claves('iva-bimestral')).toEqual(['2026-B1', '2026-B2', '2026-B3', '2026-B4', '2026-B5', '2026-B6']);
+		expect(claves('iva-cuatrimestral')).toEqual(['2026-C1', '2026-C2', '2026-C3']);
+		expect(claves('renta-juridicas')).toEqual(['AG2025-C1', 'AG2025-C2']);
+		expect(claves('renta-grandes')).toEqual(['AG2025-C1', 'AG2025-C2', 'AG2025-C3']);
+		expect(claves('renta-naturales')).toEqual(['AG2025']);
+		expect(claves('regimen-simple')).toEqual([
+			'2026-A1', '2026-A2', '2026-A3', '2026-A4', '2026-A5', '2026-A6', 'AG2025-IVA', 'AG2025-DEC'
+		]);
+	});
+
+	it('CP-F2-39 cada periodo dice qué mes cubre y en qué mes vence, con el año solo si cambia', () => {
+		const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+		const vence = (i: number) => (i === 11 ? 'enero 2027' : MESES[i + 1].toLowerCase());
+		expect(nombres('retencion')).toEqual(MESES.map((m, i) => `${m} 2026 (vence en ${vence(i)})`));
+		expect(nombres('iva-bimestral')).toEqual([
+			'Enero-Febrero 2026 (vence en marzo)',
+			'Marzo-Abril 2026 (vence en mayo)',
+			'Mayo-Junio 2026 (vence en julio)',
+			'Julio-Agosto 2026 (vence en septiembre)',
+			'Septiembre-Octubre 2026 (vence en noviembre)',
+			'Noviembre-Diciembre 2026 (vence en enero 2027)'
+		]);
+		expect(nombres('iva-cuatrimestral')).toEqual([
+			'Enero-Abril 2026 (vence en mayo)',
+			'Mayo-Agosto 2026 (vence en septiembre)',
+			'Septiembre-Diciembre 2026 (vence en enero 2027)'
+		]);
+		// Art. 1.6.1.13.2.52: los anticipos del Simple no vencen al mes siguiente.
+		expect(nombres('regimen-simple').slice(0, 6)).toEqual([
+			'Anticipo enero-febrero 2026 (vence en mayo)',
+			'Anticipo marzo-abril 2026 (vence en junio)',
+			'Anticipo mayo-junio 2026 (vence en julio)',
+			'Anticipo julio-agosto 2026 (vence en septiembre)',
+			'Anticipo septiembre-octubre 2026 (vence en noviembre)',
+			'Anticipo noviembre-diciembre 2026 (vence en enero 2027)'
+		]);
+		expect(nombres('renta-naturales')).toEqual(['Declaración y pago año gravable 2025']);
+	});
+
+	it('CP-F2-40 el tope de 41 UVT de renta jurídicas se muestra en pesos solo si se conoce la UVT del año', () => {
+		// UVT 2026 = $52.374: 41 × 52.374 = 2.147.334, redondeado a miles.
+		expect(ob('renta-juridicas').descripcion).toContain('menor a 41 UVT ($2.147.000)');
+		expect(ob('renta-juridicas').descripcion).toContain('obras por impuestos tienen plazo hasta el 2026-05-29');
+		const de2027 = calendarioDelAnio(2027).find((o) => o.id === 'renta-juridicas')!.descripcion;
+		expect(de2027).toContain('menor a 41 UVT, el pago');
+		expect(de2027).not.toContain('obras por impuestos');
+		expect(de2027.endsWith('vence en la fecha de la cuota 1.')).toBe(true);
+	});
+
+	it('CP-F2-41 nombres de las obligaciones y de sus cuotas, como en el calendario publicado', () => {
+		expect(cal.map((o) => o.nombre)).toEqual([
+			'Retención en la fuente',
+			'IVA bimestral',
+			'IVA cuatrimestral',
+			'Renta personas jurídicas y demás',
+			'Renta grandes contribuyentes',
+			'Renta personas naturales',
+			'Régimen Simple de Tributación'
+		]);
+		expect(nombres('renta-juridicas')).toEqual(['Cuota 1 (declaración y pago)', 'Cuota 2 (solo pago)']);
+		expect(nombres('renta-grandes')).toEqual(['Cuota 1 (solo pago)', 'Cuota 2 (declaración y pago)', 'Cuota 3 (solo pago)']);
+		expect(nombres('regimen-simple').slice(6)).toEqual([
+			'IVA anual consolidado del Simple (año gravable 2025)',
+			'Declaración anual del Simple (año gravable 2025)'
+		]);
+	});
 });

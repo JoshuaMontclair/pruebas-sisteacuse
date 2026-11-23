@@ -18,6 +18,8 @@
 
 import { describe, expect, it } from 'vitest';
 import {
+	catalogoDeLicencia,
+	codigoPlan,
 	compararMonto,
 	CORTE_PRECIOS_MS,
 	cotizar,
@@ -25,7 +27,10 @@ import {
 	evaluarCupon,
 	type FilaCupon,
 	type LicenciaParaRenovar,
-	normalizarCupon
+	normalizarCupon,
+	reglaRenovacion,
+	reglasEmpresas,
+	CATALOGO_NOV_2026
 } from '../../sut/sitio-pagos/pagos';
 
 const HOY = new Date('2026-11-22T15:00:00Z');
@@ -119,7 +124,13 @@ describe('F3 · cotizar(): upgrade y empresas adicionales (tabla de decisión)',
 
 	it('CP-F3-70 2 empresas adicionales sobre un Pyme a mitad de año', () => {
 		const r = cotizar({ flujo: 'extras', cantidad: 2 }, { ahora: MITAD_DE_ANIO, licencia: licencia() });
-		expect(r).toMatchObject({ ok: true, montoCents: 5_013_700, desglose: { cantidad: 2, cupoNuevo: 3, total: 50_137 } });
+		expect(r).toMatchObject({
+			ok: true,
+			montoCents: 5_013_700,
+			// Tolerancia de 3 días: ⌈3 × 50.000 × 2 / 365⌉ = $822.
+			toleranciaCents: 82_200,
+			desglose: { flujo: 'extras', cantidad: 2, cupoNuevo: 3, total: 50_137 }
+		});
 	});
 
 	it('CP-F3-71 empresas adicionales sobre un plan que no es Pyme: 400', () => {
@@ -242,7 +253,8 @@ describe('F3 · cotizar(): renovación anual (tabla de decisión: catálogo × v
 	it('CP-F3-98 la app muestra otro plan que el de la licencia: hay que recargar', () => {
 		expect(cotizar({ flujo: 'renovacion', plan: 'CONT' }, { ahora: ANTES_DEL_CORTE, licencia: pyme() })).toMatchObject({
 			ok: false,
-			codigo: 'renovacion_desactualizada'
+			codigo: 'renovacion_desactualizada',
+			mensaje: 'Tu plan cambió. Recarga la página.'
 		});
 	});
 
@@ -266,7 +278,8 @@ describe('F3 · cotizar(): renovación anual (tabla de decisión: catálogo × v
 		expect(cotizar({ flujo: 'renovacion' }, { ahora: HOY, licencia: pyme() })).toMatchObject({
 			ok: false,
 			status: 503,
-			codigo: 'cotizacion_no_disponible'
+			codigo: 'cotizacion_no_disponible',
+			mensaje: expect.stringContaining('escríbenos por WhatsApp')
 		});
 	});
 
@@ -290,6 +303,231 @@ describe('F3 · cotizar(): renovación anual (tabla de decisión: catálogo × v
 	it('CP-F3-104 desde el corte, la app muestra un plan que no es ni el actual ni el destino: hay que recargar', () => {
 		expect(
 			cotizar({ flujo: 'renovacion', plan: 'MAX' }, { ahora: HOY, licencia: pyme(), renovacion: deLaBase() })
-		).toMatchObject({ ok: false, codigo: 'renovacion_desactualizada' });
+		).toMatchObject({ ok: false, codigo: 'renovacion_desactualizada', mensaje: 'Tu plan cambió. Recarga la página.' });
+	});
+});
+
+// Casos agregados a partir de las pruebas de mutación (Stryker). Cada bloque
+// dice qué borde de la regla no estaba cubierto.
+describe('F3 · renovación: bordes de la ventana y del cupo (mutación)', () => {
+	const ANTES_DEL_CORTE = new Date('2026-10-20T15:00:00Z'); // hoy en Bogotá: 2026-10-20
+	const renovar = (cambios: Partial<LicenciaParaRenovar>, plan?: 'PYME' | 'CONT') =>
+		cotizar({ flujo: 'renovacion', plan }, { ahora: ANTES_DEL_CORTE, licencia: licencia({ end_date: '2026-12-31', ...cambios }) });
+
+	it('CP-F3-105 VL · faltan exactamente 90 días: ya se puede renovar (RN-16)', () => {
+		expect(renovar({ end_date: '2027-01-18' })).toMatchObject({
+			ok: true,
+			desglose: { modo: 'extendida', diasRestantes: 90, nuevaVigenciaDesde: '2027-01-19' }
+		});
+	});
+
+	it('CP-F3-106 VL · faltan 91 días: todavía no, y dice desde qué fecha se puede', () => {
+		expect(renovar({ end_date: '2027-01-19' })).toMatchObject({
+			ok: false,
+			codigo: 'fuera_de_ventana',
+			mensaje: 'Tu plan vence el 19 de enero de 2027. Puedes renovarlo desde el 21 de octubre de 2026.'
+		});
+	});
+
+	it('CP-F3-107 VL · licencia activa que vence hoy: se extiende desde mañana, no desde hoy', () => {
+		expect(renovar({ end_date: '2026-10-20' })).toMatchObject({
+			ok: true,
+			desglose: { modo: 'extendida', diasRestantes: 0, nuevaVigenciaDesde: '2026-10-21', nuevaVigenciaHasta: '2027-10-21' }
+		});
+	});
+
+	it('CP-F3-108 VL · licencia desactivada que vence hoy: a mano (no se crea otra)', () => {
+		expect(renovar({ end_date: '2026-10-20', is_active: false })).toMatchObject({
+			ok: false,
+			codigo: 'renovacion_manual',
+			mensaje: 'Tu plan está desactivado. Escríbenos por WhatsApp y te ayudamos a renovarlo.'
+		});
+	});
+
+	it('CP-F3-109 licencia desactivada y ya vencida: se crea una nueva desde hoy', () => {
+		expect(renovar({ end_date: '2026-09-30', is_active: false })).toMatchObject({
+			ok: true,
+			desglose: { modo: 'nueva', nuevaVigenciaDesde: '2026-10-20' }
+		});
+	});
+
+	it.each([
+		['CP-F3-110', 'VL · Pyme con 200 empresas, el tope', 200, true],
+		['CP-F3-111', 'VL · Pyme con 201 empresas', 201, false],
+		['CP-F3-112', 'VL · Pyme con 0 empresas', 0, false],
+		['CP-F3-113', 'PE inválida · cupo que no es número', 'diez', false]
+	] as const)('%s %s', (_id, _desc, empresas, ok) => {
+		const r = renovar({ companies_number: empresas });
+		if (ok) expect(r).toMatchObject({ ok: true, desglose: { empresas: 200 } });
+		else expect(r).toMatchObject({ ok: false, codigo: 'renovacion_manual', mensaje: expect.stringContaining('renovación especial') });
+	});
+
+	it('CP-F3-114 Pyme con 3 empresas: plan + 2 adicionales al precio de entonces, sin precio de fundador', () => {
+		expect(renovar({ companies_number: 3 }, 'PYME')).toMatchObject({
+			ok: true,
+			montoCents: 25_000_000,
+			desglose: { flujo: 'renovacion', empresasAdicionales: 2, precioAdicionales: 100_000, precioLista: 250_000, fundador: false }
+		});
+	});
+
+	it('CP-F3-115 Contador con su cupo de entonces (10 empresas): se renueva en línea sin adicionales', () => {
+		expect(renovar({ license_type: 'Plan Contador', companies_number: 10 })).toMatchObject({
+			ok: true,
+			montoCents: 25_000_000,
+			desglose: { plan: 'Plan Contador', empresasAdicionales: 0, precioAdicionales: 0 }
+		});
+	});
+
+	it('CP-F3-116 plan que no existe o fecha de vencimiento ilegible: a mano', () => {
+		expect(renovar({ license_type: 'Plan Inventado' })).toMatchObject({ ok: false, codigo: 'renovacion_manual' });
+		expect(renovar({ end_date: '31/12/2026' })).toMatchObject({ ok: false, codigo: 'renovacion_manual' });
+	});
+
+	it('CP-F3-117 sin licencia: 409 y lleva a elegir un plan', () => {
+		expect(cotizar({ flujo: 'renovacion' }, { ahora: ANTES_DEL_CORTE, licencia: null })).toMatchObject({
+			ok: false,
+			status: 409,
+			codigo: 'sin_licencia',
+			mensaje: expect.stringContaining('sisteacuse.com/planes')
+		});
+	});
+
+	it('CP-F3-118 si no se dice qué reglas usar, reglaRenovacion aplica las de antes del corte', () => {
+		const especial = licencia({ license_type: 'Plan Contador', companies_number: 7, end_date: '2026-12-31' });
+		expect(reglaRenovacion(especial, '2026-10-20')).toMatchObject({ ok: false, codigo: 'renovacion_manual' });
+		expect(reglaRenovacion(especial, '2026-10-20', true)).toMatchObject({ ok: true, modo: 'extendida' });
+	});
+});
+
+describe('F3 · renovación desde el corte: lo que decide la base (mutación)', () => {
+	const pyme = licencia({ end_date: '2026-12-31' });
+	const base = (cambios: Partial<CotizacionRenovacion> = {}): CotizacionRenovacion => ({
+		resultado: 'ok', codigo: null, reglas: 'nov-2026', plan_anterior: 'Plan Pyme', cupo_anterior: 1,
+		empresas_registradas: 1, fundador: true, paso: 1, grupo: null, plan_codigo: 'PYME', plan: 'Plan Pyme',
+		cupo: 1, precio: 180_000, precio_plan: null, empresas_adicionales: 0, precio_adicionales: 0,
+		precio_lista: 200_000, precio_hoy: 180_000, ...cambios
+	});
+	const renovar = (q: CotizacionRenovacion | undefined, lic = pyme, plan?: 'PYME' | 'CONT' | 'ULTRA') =>
+		cotizar({ flujo: 'renovacion', plan } as never, { ahora: HOY, licencia: lic, renovacion: q });
+
+	it('CP-F3-119 mismo plan: no hay cambio de plan y, sin precio_plan, el precio del plan es el total', () => {
+		expect(renovar(base(), pyme, 'PYME')).toMatchObject({
+			ok: true,
+			montoCents: 18_000_000,
+			desglose: { cambioDePlan: false, precioPlan: 180_000, fundador: true, flujo: 'renovacion' }
+		});
+	});
+
+	it('CP-F3-120 la base sube el plan: la app puede seguir mostrando el plan actual o ya el nuevo', () => {
+		const contador = base({ plan_codigo: 'CONT', plan: 'Plan Contador', cupo: 5, precio: 350_000 });
+		expect(renovar(contador, pyme, 'PYME')).toMatchObject({ ok: true, desglose: { cambioDePlan: true } });
+		expect(renovar(contador, pyme, 'CONT')).toMatchObject({ ok: true, montoCents: 35_000_000 });
+	});
+
+	it('CP-F3-121 una cotización con reglas de otra versión no se usa: 503', () => {
+		expect(renovar(base({ reglas: 'otra' as 'nov-2026' }))).toMatchObject({ ok: false, status: 503, codigo: 'cotizacion_no_disponible' });
+	});
+
+	it('CP-F3-122 Ultra se renueva con lo que diga la base; un plan desconocido, a mano', () => {
+		const ultra = licencia({ license_type: 'Plan Contador Ultra', companies_number: 50, end_date: '2026-12-31' });
+		const q = base({ plan_codigo: 'ULTRA', plan: 'Plan Contador Ultra', cupo: 50, precio: 1_400_000 });
+		expect(renovar(q, ultra)).toMatchObject({ ok: true, montoCents: 140_000_000 });
+		expect(renovar(q, licencia({ license_type: 'Plan Inventado', end_date: '2026-12-31' }))).toMatchObject({
+			ok: false,
+			codigo: 'renovacion_manual'
+		});
+	});
+
+	it('CP-F3-123 sobre un plan mensual no hay renovación anual: se compran más meses', () => {
+		expect(renovar(base(), licencia({ periodicidad: 'mensual' }))).toMatchObject({
+			ok: false,
+			codigo: 'no_aplica_mensual',
+			mensaje: expect.stringContaining('compra más meses')
+		});
+		expect(cotizar({ flujo: 'upgrade', plan: 'CONT' }, { ahora: HOY, licencia: licencia({ periodicidad: 'mensual' }) })).toMatchObject({
+			mensaje: expect.stringContaining('para cambiar de plan o sumar empresas')
+		});
+	});
+});
+
+describe('F3 · cotizar(): detalles del registro, la compra y el upgrade (mutación)', () => {
+	it('CP-F3-124 un cupón que no descuenta nada no aparece en el desglose', () => {
+		expect(cotizar({ flujo: 'registro', plan: 'PYME' }, { ahora: HOY, cuponPct: 0, cupon: 'CERO' })).toMatchObject({
+			ok: true,
+			desglose: { cupon: null, descuento: 0 }
+		});
+	});
+
+	it('CP-F3-125 en el registro se ignoran las empresas que mande el navegador: solo las del plan', () => {
+		expect(cotizar({ flujo: 'registro', plan: 'PYME', empresas: 5 } as never, { ahora: HOY })).toMatchObject({
+			ok: true,
+			montoCents: 20_000_000,
+			desglose: { flujo: 'registro', empresas: 1 }
+		});
+	});
+
+	it('CP-F3-126 tener un plan mensual no impide registrarse o comprar el anual', () => {
+		const mensual = licencia({ periodicidad: 'mensual' });
+		expect(cotizar({ flujo: 'compra', plan: 'PYME', empresas: 1 }, { ahora: HOY, licencia: mensual })).toMatchObject({ ok: true });
+	});
+
+	it('CP-F3-127 upgrade de un Pyme con 12 empresas a Contador: conserva su cupo si es mayor al del plan', () => {
+		const r = cotizar({ flujo: 'upgrade', plan: 'CONT' }, { ahora: MITAD_DE_ANIO, licencia: licencia({ companies_number: 12 }) });
+		expect(r).toMatchObject({ ok: true, desglose: { flujo: 'upgrade', cupoNuevo: 12 } });
+	});
+
+	it('CP-F3-128 los mensajes de rechazo del upgrade dicen qué hacer', () => {
+		expect(cotizar({ flujo: 'upgrade', plan: 'CONT' }, { ahora: HOY, licencia: null })).toMatchObject({
+			mensaje: 'No tienes un plan activo.'
+		});
+		expect(
+			cotizar({ flujo: 'upgrade', plan: 'PYME' }, { ahora: MITAD_DE_ANIO, licencia: licencia({ license_type: 'Plan Contador' }) })
+		).toMatchObject({ mensaje: 'Solo puedes subir a un plan superior.' });
+	});
+
+	it('CP-F3-129 los flujos del plan mensual se delegan a su propio cotizador (fuera del alcance)', () => {
+		const ctx = { ahora: HOY, licencia: null };
+		expect(cotizar({ flujo: 'mensual', plan: 'PYME', empresas: 1, meses: 1 } as never, ctx)).toMatchObject({ desglose: { flujo: 'mensual' } });
+		expect(cotizar({ flujo: 'registro_mensual', plan: 'PYME', meses: 1 } as never, ctx)).toMatchObject({
+			desglose: { flujo: 'registro_mensual' }
+		});
+		expect(cotizar({ flujo: 'al_dia' } as never, ctx)).toMatchObject({ codigo: 'sin_mensual' });
+		expect(cotizar({ flujo: 'anualizar', plan: 'PYME', empresas: 1 } as never, ctx)).toMatchObject({ codigo: 'sin_mensual' });
+	});
+});
+
+describe('F3 · reglas de apoyo del cotizador (mutación)', () => {
+	it('CP-F3-130 null en las empresas de una compra vale como «las del plan»', () => {
+		expect(reglasEmpresas(CATALOGO_NOV_2026, 'compra', 'PYME', null)).toEqual({ ok: true, empresas: 1 });
+	});
+
+	it('CP-F3-131 los mensajes de rechazo de empresas dicen el límite', () => {
+		expect(reglasEmpresas(CATALOGO_NOV_2026, 'compra', 'PYME', 'x')).toMatchObject({ mensaje: 'Cantidad de empresas inválida.' });
+		expect(reglasEmpresas(CATALOGO_NOV_2026, 'compra', 'PYME', 22)).toMatchObject({
+			mensaje: 'El Plan Pyme admite hasta 20 empresas adicionales por compra.'
+		});
+		expect(cotizar({ flujo: 'extras', cantidad: 21 }, { ahora: MITAD_DE_ANIO, licencia: licencia() })).toMatchObject({
+			mensaje: 'Puedes agregar de 1 a 20 empresas por compra.'
+		});
+		expect(
+			cotizar({ flujo: 'extras', cantidad: 1 }, { ahora: MITAD_DE_ANIO, licencia: licencia({ license_type: 'Plan Contador' }) })
+		).toMatchObject({ mensaje: expect.stringContaining('solo aplica al Plan Pyme') });
+	});
+
+	it('CP-F3-132 codigoPlan no acepta un arreglo aunque su texto sea el nombre de un plan', () => {
+		expect(codigoPlan(['Plan Pyme'])).toBeNull();
+		expect(codigoPlan('Plan Pyme')).toBe('PYME');
+	});
+
+	it('CP-F3-133 el catálogo de una licencia exige una fecha de calendario (AAAA-MM-DD) exacta', () => {
+		expect(catalogoDeLicencia({ start_date: '2026-11-05' }).id).toBe('nov-2026');
+		expect(catalogoDeLicencia({ start_date: '2026-11-05T00:00:00Z' }).id).toBe('base-2026');
+		expect(catalogoDeLicencia({ start_date: 'X2026-11-05' }).id).toBe('base-2026');
+	});
+
+	it('CP-F3-134 cupón con candado de plan: vale para ese plan; un máximo de usos nulo es «sin límite»', () => {
+		const ahora = new Date('2026-11-22T12:00:00Z');
+		const fila: FilaCupon = { id: 'c1', code: 'PYME10', discount_percent: 10, is_active: true, solo_plan: 'PYME', max_usos: null };
+		expect(evaluarCupon(fila, { usos: 3, yaUsadoPorCliente: false, plan: 'PYME' }, ahora)).toBeNull();
 	});
 });

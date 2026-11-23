@@ -105,3 +105,25 @@ describe('F1 · formato de lectura', () => {
 		expect(formatearNit('1020304050', 0)).toBe('1.020.304.050-0');
 	});
 });
+
+// Casos agregados a partir de las pruebas de mutación (Stryker): cada uno
+// cubre un borde que la suite no distinguía.
+describe('F1 · bordes del DV (encontrados con pruebas de mutación)', () => {
+	it('CP-F1-36 VL · DV 9, el mayor posible: 800000005 → 9 y se acepta', () => {
+		// 5×3 + 8×41 = 343; 343 mod 11 = 2; DV = 11 − 2 = 9.
+		expect(calcularDV('800000005')).toBe(9);
+		expect(dvCoincide('800000005', 9)).toBe(true);
+		expect(dvCoincide('800000005', '9')).toBe(true);
+	});
+
+	it('CP-F1-37 un DV vacío no coincide aunque el DV real sea 0 (Number("") vale 0)', () => {
+		expect(calcularDV('900000009')).toBe(0);
+		expect(dvCoincide('900000009', '')).toBe(false);
+		expect(dvCoincide('900000009', 0)).toBe(true);
+	});
+
+	it('CP-F1-38 soloDigitos y formatearNit con valores nulos', () => {
+		expect(soloDigitos(null as unknown as string)).toBe('');
+		expect(formatearNit('800197268', null)).toBe('800.197.268');
+	});
+});

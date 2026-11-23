@@ -1,11 +1,16 @@
-// Pruebas de mutación: ¿la suite detecta errores reales en el código?
+// Mutantes DIRIGIDOS: complemento de Stryker (npm run test:mutacion).
 //
-// Cada mutante cambia UNA cosa del código bajo prueba (sut/), del tipo de error
-// que comete una persona: un peso mal copiado, un < por un <=, un redondeo
-// distinto, la hora de corte sin la zona horaria. Para cada uno se corren las
-// pruebas unitarias (sin las de defectos conocidos); si alguna falla, el
-// mutante quedó «eliminado», que es lo que se espera. Al final se restaura el
-// código original.
+// La medida de calidad de la suite es la de Stryker, que genera los mutantes
+// sin que nadie los escoja. Stryker no cambia literales numéricos, así que
+// aquí hay errores de ese tipo escritos a mano: un peso del módulo 11 mal
+// copiado, la hora de corte sin la zona horaria, un tope o una ventana de días
+// distintos. M16 a M21 son los que propuso la revisión del documento. Como
+// estos mutantes los escogió el equipo, su resultado no se presenta como
+// medida general.
+//
+// Para cada uno se corren las pruebas unitarias (sin las de defectos
+// conocidos); si alguna falla, el mutante quedó «eliminado». Al final se
+// restaura el código original.
 //
 //   node scripts/mutantes.mjs
 
@@ -29,7 +34,13 @@ const MUTANTES = [
 	['M11', 'F3', 'sut/sitio-pagos/pagos.ts', 'Math.ceil((ahora.getTime() - inicio) / DIA_MS)', 'Math.floor((ahora.getTime() - inicio) / DIA_MS)', 'Un día empezado no cuenta en el prorrateo'],
 	['M12', 'F3', 'sut/sitio-pagos/pagos.ts', 'recibidoCents < esperadoCents - toleranciaCents', 'recibidoCents <= esperadoCents - toleranciaCents', 'El borde de la tolerancia se rechaza'],
 	['M13', 'F3', 'sut/sitio-pagos/pagos.ts', 'uso.usos >= c.max_usos', 'uso.usos > c.max_usos', 'Un cupón agotado admite un uso más'],
-	['M14', 'F3', 'sut/sitio-pagos/pagos.ts', 'inicio >= FECHA_CORTE_PRECIOS', 'inicio > FECHA_CORTE_PRECIOS', 'Licencia del 1-nov con el catálogo anterior']
+	['M14', 'F3', 'sut/sitio-pagos/pagos.ts', 'inicio >= FECHA_CORTE_PRECIOS', 'inicio > FECHA_CORTE_PRECIOS', 'Licencia del 1-nov con el catálogo anterior'],
+	['M16', 'F3', 'sut/sitio-pagos/pagos.ts', 'VENTANA_RENOVACION_DIAS = 90', 'VENTANA_RENOVACION_DIAS = 120', 'Ventana de renovación de 120 días'],
+	['M17', 'F3', 'sut/sitio-pagos/pagos.ts', 'MAX_EMPRESAS_RENOVACION = 200', 'MAX_EMPRESAS_RENOVACION = 250', 'Tope de 250 empresas en la renovación'],
+	['M18', 'F1', 'sut/app/rut/nit.ts', 'n < 0 || n > 9', 'n < 0 || n > 8', 'dvCoincide rechaza el DV 9'],
+	['M19', 'F3', 'sut/sitio-pagos/pagos.ts', 'if (!activa && dias >= 0)', 'if (!activa && dias > 0)', 'Licencia desactivada que vence hoy se trata como vencida'],
+	['M20', 'F3', 'sut/sitio-pagos/pagos.ts', 'if (!plan || !Number.isSafeInteger(empresas)) return manual;', 'if (!plan) return manual;', 'Renovación sin revisar que el cupo sea un entero'],
+	['M21', 'F3', 'sut/sitio-pagos/pagos.ts', 'if (dias > VENTANA_RENOVACION_DIAS)', 'if (dias >= VENTANA_RENOVACION_DIAS)', 'El día 90 queda fuera de la ventana']
 ];
 
 function correrPruebas() {

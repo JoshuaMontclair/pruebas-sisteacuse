@@ -1,0 +1,39 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "testRunner": "vitest",
+  "vitest": {
+    "configFile": "vitest.mutacion.config.ts"
+  },
+  "mutate": [
+    "sut/app/rut/nit.ts",
+    "sut/app/calendario/festivos.ts",
+    "sut/app/calendario/plazos.ts",
+    "sut/sitio-pagos/pagos.ts:110-130",
+    "sut/sitio-pagos/pagos.ts:226-236",
+    "sut/sitio-pagos/pagos.ts:247-367",
+    "sut/sitio-pagos/pagos.ts:574-578",
+    "sut/sitio-pagos/pagos.ts:715-762",
+    "sut/sitio-pagos/pagos.ts:1069-1254",
+    "sut/sitio-pagos/pagos.ts:1308-1320"
+  ],
+  "reporters": [
+    "clear-text",
+    "progress",
+    "html",
+    "json"
+  ],
+  "htmlReporter": {
+    "fileName": "reportes/mutacion/index.html"
+  },
+  "jsonReporter": {
+    "fileName": "reportes/mutacion/mutation.json"
+  },
+  "tempDirName": ".stryker-tmp",
+  "concurrency": 4,
+  "thresholds": {
+    "high": 90,
+    "low": 80,
+    "break": 90
+  },
+  "tsconfigFile": "tsconfig.stryker-no-existe.json"
+}

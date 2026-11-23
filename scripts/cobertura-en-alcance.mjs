@@ -5,9 +5,15 @@
 // y no dice nada de F3. Este script la calcula solo sobre las funciones del
 // cotizador, a partir de reportes/cobertura/coverage-final.json.
 //
+// Criterio de salida S3: al menos el 90 % de las sentencias y de las ramas, en
+// el agregado y en cada función. Si no se cumple, termina con error (así lo
+// verifica la integración continua).
+//
 //   npm run test:cobertura && node scripts/cobertura-en-alcance.mjs
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
+
+const UMBRAL = 90;
 
 const EN_ALCANCE = [
 	'rigePrecioNuevo', 'catalogoEn', 'catalogoDeLicencia', 'codigoPlan', 'codigoPlanRenovacion',
@@ -37,7 +43,7 @@ for (const [fid, fn] of funciones) {
 		}
 	}
 	sentencias += s; sentenciasCubiertas += sc; ramas += b; ramasCubiertas += bc;
-	detalle.push({ funcion: fn.name, llamadas: archivo.f[fid], sentencias: `${sc}/${s}`, ramas: `${bc}/${b}` });
+	detalle.push({ funcion: fn.name, llamadas: archivo.f[fid], sentencias: `${sc}/${s}`, ramas: `${bc}/${b}`, pctS: (100 * sc) / s, pctR: b ? (100 * bc) / b : 100 });
 }
 
 const ejecutadas = funciones.filter(([id]) => archivo.f[id] > 0).length;
@@ -48,3 +54,23 @@ console.log(`  sentencias  ${sentenciasCubiertas}/${sentencias}  ${pct(sentencia
 console.log(`  ramas       ${ramasCubiertas}/${ramas}  ${pct(ramasCubiertas, ramas)}`);
 console.log('\n  por función:');
 for (const d of detalle) console.log(`    ${d.funcion.padEnd(22)} llamadas ${String(d.llamadas).padStart(4)}  sentencias ${d.sentencias.padStart(7)}  ramas ${d.ramas.padStart(7)}`);
+
+const porDebajo = detalle.filter((d) => d.pctS < UMBRAL || d.pctR < UMBRAL);
+const minimo = detalle.reduce((m, d) => (Math.min(d.pctS, d.pctR) < Math.min(m.pctS, m.pctR) ? d : m));
+writeFileSync(
+	'reportes/cobertura/en-alcance.json',
+	JSON.stringify({
+		funciones: funciones.length,
+		ejecutadas,
+		sentencias: (100 * sentenciasCubiertas) / sentencias,
+		ramas: (100 * ramasCubiertas) / ramas,
+		minimo: { funcion: minimo.funcion, sentencias: minimo.pctS, ramas: minimo.pctR },
+		detalle
+	}, null, 2)
+);
+const agregadoOk = (100 * sentenciasCubiertas) / sentencias >= UMBRAL && (100 * ramasCubiertas) / ramas >= UMBRAL;
+console.log(`\nS3 (≥ ${UMBRAL} % en el agregado y en cada función): ${agregadoOk && !porDebajo.length ? 'cumple' : 'NO cumple'}`);
+if (!agregadoOk || porDebajo.length) {
+	for (const d of porDebajo) console.error(`  por debajo: ${d.funcion} (sentencias ${d.sentencias}, ramas ${d.ramas})`);
+	process.exitCode = 1;
+}

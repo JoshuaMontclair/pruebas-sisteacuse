@@ -41,7 +41,7 @@ for (const [id, caso, instante, cat, conUltra] of ESCENARIOS) {
 	});
 }
 
-test('CP-F3-E04 el registro cobra el precio del catálogo vigente (Plan Contador antes y después del corte)', async ({ page, backend: _ }) => {
+test('CP-F3-E04 el formulario de registro muestra el precio del catálogo vigente (Plan Contador antes y después del corte)', async ({ page, backend: _ }) => {
 	await page.clock.setFixedTime(new Date('2026-10-31T23:59:00-05:00'));
 	await page.goto('/registro?plan=Plan%20Contador');
 	await expect(page.getByText(`${pesos(CATALOGO_BASE_2026.planes.CONT.precio)}/año`).first()).toBeVisible();

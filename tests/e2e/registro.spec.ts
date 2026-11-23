@@ -170,8 +170,11 @@ test.describe('F4 · paso 2: cupón de descuento', () => {
 		});
 	});
 
-	test('CP-F4-13 cupón rechazado por el servidor: mensaje claro y el total no cambia', async ({ page, backend }) => {
-		backend.prepararPago = servidorDePagos({ PROMO10: 10 });
+	test('CP-F4-13 cupón vencido (lo rechaza evaluarCupon en el servidor): mensaje claro y el total no cambia', async ({ page, backend }) => {
+		backend.prepararPago = servidorDePagos({
+			PROMO10: 10,
+			VENCIDO: { discount_percent: 20, vence_at: '2026-11-01T00:00:00-05:00' }
+		});
 		await llenarPaso1(page);
 		await aplicarCupon(page, 'VENCIDO');
 
@@ -230,12 +233,17 @@ test.describe('F4 · paso 2: pago', () => {
 		});
 	}
 
-	test('CP-F4-19 la persona cierra Wompi sin pagar: puede volver a intentarlo', async ({ page, backend }) => {
+	test('CP-F4-19 la persona cierra Wompi sin pagar: puede volver a intentarlo y el pago se firma de nuevo', async ({ page, backend }) => {
 		backend.resultadoWompi = null;
 		await llenarPaso1(page);
 		const boton = pagar(page);
 		await boton.click();
 		await expect(boton).toBeEnabled();
+		await expect(page).not.toHaveURL(/\/gracias/);
+
+		await boton.click();
+		await expect.poll(() => page.evaluate(() => (window as any).__aperturasWompi)).toBe(2);
+		expect(backend.llamadasA('/preparar-pago').filter((l) => !l.cuerpo?.solo_cotizar)).toHaveLength(2);
 		await expect(page).not.toHaveURL(/\/gracias/);
 	});
 
@@ -255,6 +263,29 @@ test.describe('F4 · paso 2: pago', () => {
 		await llenarPaso1(page);
 		await pagar(page).click();
 		await expect(page.getByText('Este correo ya tiene una cuenta con un plan activo.')).toBeVisible();
+		expect(await page.evaluate(() => (window as any).__wompi?.abierto ?? false)).toBe(false);
+	});
+
+	test('CP-F4-34 el sitio cobra el monto que firma el servidor, no el que muestra (RN-12)', async ({ page, backend }) => {
+		// El servidor firma $123.456 aunque la página muestre el precio del plan:
+		// si el sitio usara su propio monto, Wompi se abriría con el precio.
+		backend.prepararPago = servidorDePagos({}, { montoFirmadoCents: 12_345_600 });
+		await llenarPaso1(page);
+		await pagar(page).click();
+		await expect(page).toHaveURL(/\/gracias/);
+		const wompi = await page.evaluate(() => (window as any).__wompi.config);
+		expect(wompi.amountInCents).toBe(12_345_600);
+		expect(wompi.amountInCents).not.toBe(PRECIO * 100);
+	});
+
+	test('CP-F4-35 cupón con candado para otro plan: el servidor lo rechaza aunque exista', async ({ page, backend }) => {
+		backend.prepararPago = servidorDePagos({ SOLOCONT: { discount_percent: 30, solo_plan: 'CONT' } });
+		await llenarPaso1(page);
+		await page.getByRole('button', { name: 'Tengo un cupón de descuento' }).click();
+		await page.getByLabel('Código de cupón').fill('soloCont');
+		await page.getByRole('button', { name: 'Aplicar' }).click();
+		await expect(page.getByRole('alert')).toHaveText('Cupón inválido o vencido.');
+		await expect(pagar(page)).toBeVisible();
 	});
 });
 
