@@ -5,7 +5,7 @@
 // decisión sobre las validaciones del paso 1, valores límite sobre el celular
 // y particiones de equivalencia sobre las respuestas del servidor de pagos.
 
-import { expect, pagoFirmado, rechazarCookies, test } from './entorno';
+import { expect, pagoFirmado, test } from './entorno';
 import type { Page } from '@playwright/test';
 
 const PYME = '/registro?plan=Plan%20Pyme';
@@ -22,7 +22,6 @@ const VALIDOS: Datos = {
 async function llenarPaso1(page: Page, datos: Partial<Datos> = {}) {
 	const d = { ...VALIDOS, ...datos };
 	await page.goto(PYME);
-	await rechazarCookies(page);
 	await page.locator('#firstName').fill(d.nombre);
 	await page.locator('#lastName').fill(d.apellido);
 	await page.locator('#reg-email').fill(d.correo);
@@ -69,6 +68,21 @@ test.describe('F4 · paso 1: datos de la persona', () => {
 			expect(backend.llamadasA('/rest/v1/checkouts')).toHaveLength(0);
 		});
 	}
+
+	test('CP-F4-23 sin correo: no avanza y lo pide', async ({ page, backend }) => {
+		await llenarPaso1(page, { correo: '' });
+		await expect(page.getByText('Ingresa tu correo electrónico.')).toBeVisible();
+		await expect(paso2(page)).toBeHidden();
+		expect(backend.llamadasA('/rest/v1/checkouts')).toHaveLength(0);
+	});
+
+	test('CP-F4-24 correo sin dominio: lo detiene la validación del navegador (type="email")', async ({ page, backend }) => {
+		await llenarPaso1(page, { correo: 'juanperez' });
+		const correo = page.locator('#reg-email');
+		expect(await correo.evaluate((e: HTMLInputElement) => e.validity.typeMismatch)).toBe(true);
+		await expect(paso2(page)).toBeHidden();
+		expect(backend.llamadasA('/rest/v1/checkouts')).toHaveLength(0);
+	});
 
 	test('CP-F4-10 VL · celular con indicativo 057 (13 dígitos) se acepta', async ({ page, backend }) => {
 		await llenarPaso1(page, { celular: '057 300 123 4567' });
@@ -186,7 +200,6 @@ test.describe('F4 · paso 2: pago', () => {
 
 test('CP-F4-22 un plan que no existe en la URL no abre el formulario de compra', async ({ page }) => {
 	await page.goto('/registro?plan=Plan%20Inventado');
-	await rechazarCookies(page);
 	await expect(page).toHaveTitle('Plan no disponible — SisteAcuse');
 	await expect(page.locator('#firstName')).toHaveCount(0);
 });

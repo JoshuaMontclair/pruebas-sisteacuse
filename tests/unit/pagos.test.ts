@@ -15,6 +15,7 @@ import {
 	catalogoDeLicencia,
 	catalogoEn,
 	codigoPlan,
+	codigoPlanRenovacion,
 	CORTE_PRECIOS_MS,
 	montoExtras,
 	montoUpgrade,
@@ -34,6 +35,11 @@ describe('F3 · catálogo vigente según la fecha (corte 1-nov-2026 00:00 Colomb
 		['CP-F3-05', 'PE inválida · fecha NaN', Number.NaN, 'base-2026']
 	])('%s %s', (_id, _desc, instante, id) => {
 		expect(catalogoEn(instante).id).toBe(id);
+	});
+
+	it('CP-F3-59 el instante también puede llegar como objeto Date', () => {
+		expect(catalogoEn(new Date(CORTE_PRECIOS_MS - 1)).id).toBe('base-2026');
+		expect(catalogoEn(new Date(CORTE_PRECIOS_MS)).id).toBe('nov-2026');
 	});
 
 	it.each([
@@ -134,6 +140,13 @@ describe('F3 · reglaExtras (empresas adicionales sobre una licencia)', () => {
 		expect(codigoPlan('Plan Contador Pro')).toBe('PRO');
 		expect(codigoPlan('constructor')).toBeNull();
 		expect(codigoPlan(42)).toBeNull();
+	});
+
+	it('CP-F3-58 en una renovación el destino puede ser Ultra, por código o por nombre', () => {
+		expect(codigoPlanRenovacion('ULTRA')).toBe('ULTRA');
+		expect(codigoPlanRenovacion('Plan Contador Ultra')).toBe('ULTRA');
+		expect(codigoPlanRenovacion('Plan Pyme')).toBe('PYME');
+		expect(codigoPlanRenovacion('Plan Inventado')).toBeNull();
 	});
 });
 

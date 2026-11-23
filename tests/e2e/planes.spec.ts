@@ -8,7 +8,7 @@
 // Valores límite sobre la fecha de corte de precios (1-nov-2026 00:00, hora
 // de Colombia), controlando el reloj del navegador.
 
-import { expect, rechazarCookies, test } from './entorno';
+import { expect, test } from './entorno';
 import { CATALOGO_BASE_2026, CATALOGO_NOV_2026, type Catalogo } from '../../sut/sitio-pagos/pagos';
 
 const pesos = (n: number) => '$' + n.toLocaleString('es-CO');
@@ -23,7 +23,6 @@ for (const [id, caso, instante, cat, conUltra] of ESCENARIOS) {
 	test(`${id} ${caso}: precios y cupos del catálogo ${cat.id}`, async ({ page, backend: _ }) => {
 		await page.clock.setFixedTime(new Date(instante));
 		await page.goto('/planes');
-		await rechazarCookies(page);
 
 		for (const codigo of ['PYME', 'CONT', 'PRO', 'MAX'] as const) {
 			const { nombre, precio, empresas } = cat.planes[codigo];
@@ -45,7 +44,6 @@ for (const [id, caso, instante, cat, conUltra] of ESCENARIOS) {
 test('CP-F3-E04 el registro cobra el precio del catálogo vigente (Plan Contador antes y después del corte)', async ({ page, backend: _ }) => {
 	await page.clock.setFixedTime(new Date('2026-10-31T23:59:00-05:00'));
 	await page.goto('/registro?plan=Plan%20Contador');
-	await rechazarCookies(page);
 	await expect(page.getByText(`${pesos(CATALOGO_BASE_2026.planes.CONT.precio)}/año`).first()).toBeVisible();
 
 	await page.clock.setFixedTime(new Date('2026-11-01T00:00:30-05:00'));

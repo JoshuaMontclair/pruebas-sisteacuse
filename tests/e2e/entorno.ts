@@ -9,9 +9,12 @@
 //   - cualquier otra petición externa (analítica, Meta, YouTube…) se bloquea.
 // Así ninguna prueba puede tocar producción ni hacer un cobro real.
 
-import { test as base, expect, type Page } from '@playwright/test';
+import { test as base, expect } from '@playwright/test';
 
 export const HOST_BACKEND = 'supabase.prueba.local';
+
+/** Versión de la Política de datos del sitio compilado (POLICY_VERSION de src/lib/legal.ts). */
+const POLITICA_DE_DATOS = '2026-11-16';
 
 const CORS = {
 	'access-control-allow-origin': '*',
@@ -56,6 +59,13 @@ export const test = base.extend<{ backend: Backend }>({
 			resultadoWompi: 'APPROVED',
 			llamadasA: (ruta) => backend.llamadas.filter((l) => l.ruta.endsWith(ruta))
 		};
+
+		// La persona ya rechazó las cookies opcionales: el aviso no aparece (tapaba
+		// el formulario en las capturas) y no se carga analítica.
+		await context.addInitScript((politica) => {
+			const eleccion = { v: 1, policy: politica, analytics: false, ads: false, ts: Date.now() };
+			window.localStorage.setItem('sa_consent', JSON.stringify(eleccion));
+		}, POLITICA_DE_DATOS);
 
 		await context.route('**/*', async (route) => {
 			const req = route.request();
@@ -108,12 +118,6 @@ function widgetFalso(estado: string | null): string {
 					: { transaction: null }), 50);
 			}
 		};`;
-}
-
-/** Cierra el aviso de cookies (rechazando todo, como haría alguien cauteloso). */
-export async function rechazarCookies(page: Page) {
-	const rechazar = page.getByRole('button', { name: 'Rechazar', exact: true });
-	if (await rechazar.isVisible().catch(() => false)) await rechazar.click();
 }
 
 export { expect };
