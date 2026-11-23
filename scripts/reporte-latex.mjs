@@ -184,7 +184,7 @@ try {
 	});
 	const filas = r.porArchivo.map(
 		(f) =>
-			`\\texttt{${latex(f.archivo.replace('sut/', ''))}} & ${f.generados} & ${f.invalidos} & ${f.validos} & ${f.detectados} & ${f.sobrevivientes} & ${f.equivalentes} & ${f.presentacion} & ${coma(f.puntaje)}\\,\\%\\\\`
+			`\\texttt{${latex(f.archivo.replace('sut/app/', '').replace('sut/', ''))}} & ${f.generados} & ${f.invalidos} & ${f.validos} & ${f.detectados} & ${f.sobrevivientes} & ${f.equivalentes} & ${f.presentacion} & ${coma(f.puntaje)}\\,\\%\\\\`
 	);
 	writeFileSync(join(salida, 'tabla-stryker.tex'), filas.join('\n') + '\n');
 } catch {
@@ -202,7 +202,7 @@ try {
 				: '\\textcolor{rojo}{No detectado}';
 	const filas = [...m.resultados]
 		.sort((a, b) => a.id.localeCompare(b.id, 'en', { numeric: true }))
-		.map((r) => `${r.id} & ${r.func} & \\texttt{${latex(r.archivo.replace('sut/', ''))}} & ${latex(r.descripcion)} & ${estado(r)}\\\\`);
+		.map((r) => `${r.id} & ${r.func} & \\texttt{${latex(r.archivo.replace('sut/app/', '').replace('sut/', ''))}} & ${latex(r.descripcion)} & ${estado(r)}\\\\`);
 	writeFileSync(join(salida, 'tabla-mutantes.tex'), filas.join('\n') + '\n');
 	Object.assign(extra, { mutantesDetectados: m.eliminados, mutantesTotal: m.total });
 } catch {

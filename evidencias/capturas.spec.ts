@@ -107,7 +107,8 @@ test.describe('móvil', () => {
 
 for (const [nombre, archivo] of [
 	['reporte-playwright', 'reportes/e2e/index.html'],
-	['reporte-cobertura', 'reportes/cobertura/index.html']
+	['reporte-cobertura', 'reportes/cobertura/index.html'],
+	['reporte-stryker', 'reportes/mutacion/index.html']
 ]) {
 	test(`reporte: ${nombre}`, async ({ page }) => {
 		await page.setViewportSize({ width: 1280, height: 860 });
