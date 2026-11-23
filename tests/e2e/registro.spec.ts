@@ -309,7 +309,26 @@ test.describe('DEF-06 · F4 · un pago pendiente se puede pagar otra vez', () =>
 	});
 });
 
+test.describe('DEF-07 · F4 · el botón de WhatsApp tapa el total a pagar en escritorio', () => {
+	test('a 1280 × 720, el centro del monto total queda debajo del botón «¿Dudas? Escríbenos» (correcto: monto visible)', async ({
+		page,
+		backend: _
+	}, info) => {
+		test.skip(info.project.name !== 'escritorio-chromium', 'En el iPhone el resumen del pedido se ubica de otra forma.');
+		await llenarPaso1(page);
+		await expect(paso2(page)).toBeVisible();
+		const monto = page.getByText('Total a pagar').locator('xpath=..').getByText(pesos(PRECIO), { exact: true });
+		const caja = (await monto.boundingBox())!;
+		const encima = await page.evaluate(
+			({ x, y }) => document.elementFromPoint(x, y)?.closest('a')?.textContent?.trim() ?? null,
+			{ x: caja.x + caja.width / 2, y: caja.y + caja.height / 2 }
+		);
+		expect(encima).toBe('¿Dudas? Escríbenos');
+	});
+});
+
 test('CP-F4-22 un plan que no existe en la URL no abre el formulario de compra', async ({ page }) => {
+	await page.clock.setFixedTime(HOY);
 	await page.goto('/registro?plan=Plan%20Inventado');
 	await expect(page).toHaveTitle('Plan no disponible — SisteAcuse');
 	await expect(page.getByLabel('Nombre', { exact: true })).toHaveCount(0);

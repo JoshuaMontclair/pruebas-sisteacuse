@@ -22,11 +22,10 @@ const INVALIDO = new Set(['RuntimeError', 'CompileError']);
 
 const porArchivo = [];
 const sinClasificar = [];
-const total = { generados: 0, invalidos: 0, validos: 0, detectados: 0, sobrevivientes: 0, equivalentes: 0, presentacion: 0 };
+const total = { generados: 0, invalidos: 0, validos: 0, detectados: 0, sobrevivientes: 0, equivalentes: 0 };
 
 for (const [archivo, datos] of Object.entries(reporte.files)) {
-	const lineas = datos.source.split('\n');
-	const f = { archivo, generados: 0, invalidos: 0, validos: 0, detectados: 0, sobrevivientes: 0, equivalentes: 0, presentacion: 0 };
+	const f = { archivo, generados: 0, invalidos: 0, validos: 0, detectados: 0, sobrevivientes: 0, equivalentes: 0 };
 	for (const m of datos.mutants) {
 		f.generados += 1;
 		if (INVALIDO.has(m.status)) { f.invalidos += 1; continue; }
@@ -35,14 +34,15 @@ for (const [archivo, datos] of Object.entries(reporte.files)) {
 		if (!SOBREVIVE.has(m.status)) continue;
 		f.sobrevivientes += 1;
 		const linea = m.location.start.line;
+		const columna = m.location.start.column;
 		const regla = reglas.find(
 			(r) =>
 				r.archivo === archivo &&
-				(!r.lineas || r.lineas.includes(linea)) &&
-				(!r.mutador || r.mutador === m.mutatorName) &&
-				(!r.patron || new RegExp(r.patron).test(lineas[linea - 1]))
+				r.mutantes.some(
+					(e) => e.linea === linea && e.columna === columna && e.mutador === m.mutatorName && e.reemplazo === m.replacement
+				)
 		);
-		if (regla) f[regla.tipo === 'equivalente' ? 'equivalentes' : 'presentacion'] += 1;
+		if (regla) f.equivalentes += 1;
 		else sinClasificar.push(`${archivo}:${linea} ${m.mutatorName} → ${m.replacement}`);
 	}
 	for (const k of Object.keys(total)) total[k] += f[k];

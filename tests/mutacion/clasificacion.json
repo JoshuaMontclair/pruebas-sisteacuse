@@ -1,48 +1,161 @@
 {
-  "descripcion": "Revisión manual de los mutantes que sobreviven a Stryker. Cada regla dice por qué el mutante es equivalente: cambia el código, pero no el resultado, así que ninguna prueba puede detectarlo. Un sobreviviente que no encaje en ninguna regla hace fallar scripts/mutacion-resumen.mjs: hay que escribir la prueba o justificarlo aquí.",
+  "descripcion": "Revisión manual de los mutantes que sobreviven a Stryker. Cada entrada identifica UN mutante (archivo, línea, columna, operador y reemplazo) y dice por qué es equivalente: cambia el código, pero no el resultado, así que ninguna prueba puede detectarlo. Un sobreviviente que no coincida exactamente con una entrada hace fallar scripts/mutacion-resumen.mjs: hay que escribir la prueba o revisarlo y justificarlo aquí.",
   "reglas": [
     {
       "archivo": "sut/app/rut/nit.ts",
-      "lineas": [
-        17,
-        24
-      ],
-      "tipo": "equivalente",
-      "motivo": "Valor por defecto cuando llega null: el texto que pone el mutante tampoco tiene dígitos (soloDigitos) ni es un NIT válido (nitValido); el resultado es el mismo."
+      "motivo": "Valor por defecto cuando llega null: el texto que pone el mutante tampoco tiene dígitos (soloDigitos) ni es un NIT válido (nitValido); el resultado es el mismo.",
+      "mutantes": [
+        {
+          "linea": 17,
+          "columna": 15,
+          "mutador": "StringLiteral",
+          "reemplazo": "\"Stryker was here!\""
+        },
+        {
+          "linea": 24,
+          "columna": 38,
+          "mutador": "StringLiteral",
+          "reemplazo": "\"Stryker was here!\""
+        }
+      ]
     },
     {
       "archivo": "sut/app/rut/nit.ts",
-      "lineas": [
-        44,
-        45,
-        46
-      ],
-      "tipo": "equivalente",
-      "motivo": "Guardas redundantes de dvCoincide: calcularDV solo devuelve enteros de 0 a 9, así que un DV null, undefined, negativo, decimal o mayor que 9 nunca coincide, con o sin la guarda; y Number() ya ignora los espacios que quita trim(). Los bordes que sí cambian el resultado (DV 9, DV vacío con DV real 0) tienen prueba: CP-F1-36 y CP-F1-37."
+      "motivo": "Guardas redundantes de dvCoincide: calcularDV solo devuelve enteros de 0 a 9, así que un DV null, undefined, negativo, decimal o mayor que 9 nunca coincide, con o sin la guarda; y Number() ya ignora los espacios que quita trim(). Los bordes que sí cambian el resultado (DV 9, DV vacío con DV real 0) tienen prueba: CP-F1-36 y CP-F1-37.",
+      "mutantes": [
+        {
+          "linea": 44,
+          "columna": 6,
+          "mutador": "ConditionalExpression",
+          "reemplazo": "false"
+        },
+        {
+          "linea": 44,
+          "columna": 6,
+          "mutador": "ConditionalExpression",
+          "reemplazo": "false"
+        },
+        {
+          "linea": 44,
+          "columna": 6,
+          "mutador": "LogicalOperator",
+          "reemplazo": "dv === null && dv === undefined"
+        },
+        {
+          "linea": 44,
+          "columna": 21,
+          "mutador": "ConditionalExpression",
+          "reemplazo": "false"
+        },
+        {
+          "linea": 45,
+          "columna": 12,
+          "mutador": "ConditionalExpression",
+          "reemplazo": "false"
+        },
+        {
+          "linea": 45,
+          "columna": 26,
+          "mutador": "StringLiteral",
+          "reemplazo": "\"\""
+        },
+        {
+          "linea": 45,
+          "columna": 49,
+          "mutador": "MethodExpression",
+          "reemplazo": "String(dv)"
+        },
+        {
+          "linea": 46,
+          "columna": 6,
+          "mutador": "ConditionalExpression",
+          "reemplazo": "false"
+        },
+        {
+          "linea": 46,
+          "columna": 6,
+          "mutador": "ConditionalExpression",
+          "reemplazo": "false"
+        },
+        {
+          "linea": 46,
+          "columna": 6,
+          "mutador": "LogicalOperator",
+          "reemplazo": "(!Number.isInteger(n) || n < 0) && n > 9"
+        },
+        {
+          "linea": 46,
+          "columna": 6,
+          "mutador": "LogicalOperator",
+          "reemplazo": "!Number.isInteger(n) && n < 0"
+        },
+        {
+          "linea": 46,
+          "columna": 30,
+          "mutador": "ConditionalExpression",
+          "reemplazo": "false"
+        },
+        {
+          "linea": 46,
+          "columna": 39,
+          "mutador": "ConditionalExpression",
+          "reemplazo": "false"
+        }
+      ]
     },
     {
       "archivo": "sut/app/calendario/festivos.ts",
-      "lineas": [
-        62
-      ],
-      "tipo": "equivalente",
-      "motivo": "Caché de los festivos por año: quitarla solo hace que se recalculen; las fechas son las mismas."
+      "motivo": "Caché de los festivos por año: quitarla solo hace que se recalculen; las fechas son las mismas.",
+      "mutantes": [
+        {
+          "linea": 62,
+          "columna": 6,
+          "mutador": "ConditionalExpression",
+          "reemplazo": "false"
+        }
+      ]
     },
     {
       "archivo": "sut/sitio-pagos/pagos.ts",
-      "lineas": [
-        128
-      ],
-      "tipo": "equivalente",
-      "motivo": "Valor por defecto de una licencia sin fecha: el texto que pone el mutante tampoco es una fecha AAAA-MM-DD y el catálogo sigue siendo el base-2026."
+      "motivo": "Valor por defecto de una licencia sin fecha: el texto que pone el mutante tampoco es una fecha AAAA-MM-DD y el catálogo sigue siendo el base-2026.",
+      "mutantes": [
+        {
+          "linea": 128,
+          "columna": 63,
+          "mutador": "StringLiteral",
+          "reemplazo": "\"Stryker was here!\""
+        }
+      ]
     },
     {
       "archivo": "sut/sitio-pagos/pagos.ts",
-      "lineas": [
-        234
-      ],
-      "tipo": "equivalente",
-      "motivo": "Rama redundante de codigoPlanRenovacion: CODIGOS_PLAN ya incluye ULTRA y codigoPlan reconoce «ULTRA» y «Plan Contador Ultra», así que quitar o invertir la condición no cambia el resultado."
+      "motivo": "Rama redundante de codigoPlanRenovacion: CODIGOS_PLAN ya incluye ULTRA y codigoPlan reconoce «ULTRA» y «Plan Contador Ultra», así que quitar o invertir la condición no cambia el resultado.",
+      "mutantes": [
+        {
+          "linea": 234,
+          "columna": 6,
+          "mutador": "ConditionalExpression",
+          "reemplazo": "false"
+        },
+        {
+          "linea": 234,
+          "columna": 6,
+          "mutador": "ConditionalExpression",
+          "reemplazo": "false"
+        },
+        {
+          "linea": 234,
+          "columna": 6,
+          "mutador": "LogicalOperator",
+          "reemplazo": "x === CODIGO_ULTRA && x === NOMBRE_PLAN.ULTRA"
+        },
+        {
+          "linea": 234,
+          "columna": 28,
+          "mutador": "ConditionalExpression",
+          "reemplazo": "false"
+        }
+      ]
     }
   ]
 }

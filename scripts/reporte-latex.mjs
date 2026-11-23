@@ -76,7 +76,9 @@ function partir(nombre) {
 const marca = (r) => (r === 'Pasó' ? '\\textcolor{verde}{Pasó}' : `\\textcolor{rojo}{${r}}`);
 // Un defecto conocido «pasa» mientras exista; un caso pendiente (it.todo) no corre.
 const celda = (id, r) =>
-	id.startsWith('DEF-')
+	r === 'Omitida' && id.startsWith('DEF-')
+		? '\\textcolor{gris}{No aplica}'
+		: id.startsWith('DEF-')
 		? `\\textcolor{naranja}{${r === 'Pasó' ? 'Defecto confirmado' : 'Defecto corregido'}}`
 		: r === 'Omitida'
 			? '\\textcolor{gris}{Pendiente}'
@@ -136,10 +138,10 @@ const macros = {
 	casosFuncionales: distintos(uF) + distintos(eF),
 	ejecucionesFuncionales: uF.length + eF.length,
 	aprobadasFuncionales: cuenta(uF, pasa) + cuenta(eF, pasa),
-	casosPendientes: distintos(unitarias.filter(esPendiente)),
+	casosPendientes: distintos(unitarias.filter((c) => esPendiente(c) && !esDefecto(c))),
 	defectosDistintos: distintos([...unitarias, ...e2e].filter(esDefecto)),
-	pruebasDefectos: cuenta(unitarias, esDefecto) + cuenta(e2e, esDefecto),
-	pruebasDefectosEtoE: cuenta(e2e, esDefecto),
+	pruebasDefectos: cuenta(unitarias, (c) => esDefecto(c) && !esPendiente(c)) + cuenta(e2e, (c) => esDefecto(c) && !esPendiente(c)),
+	pruebasDefectosEtoE: cuenta(e2e, (c) => esDefecto(c) && !esPendiente(c)),
 	totalUnitarias: unitarias.filter((c) => !esPendiente(c)).length,
 	unitariasFuncionales: uF.length,
 	unitariasAprobadas: cuenta(uF, pasa),

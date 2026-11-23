@@ -6,7 +6,8 @@ export default defineConfig({
 	testDir: 'tests/e2e',
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,
-	retries: process.env.CI ? 1 : 0,
+	// Sin reintentos: una prueba inestable debe fallar y verse, no pasar al segundo intento.
+	retries: 0,
 	reporter: [
 		['list'],
 		['html', { outputFolder: 'reportes/e2e', open: 'never' }],

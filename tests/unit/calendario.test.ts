@@ -77,7 +77,7 @@ describe('F2 · esDiaHabil: particiones del tipo de día', () => {
 		['CP-F2-13', 'PE · domingo', '2026-11-01', false],
 		['CP-F2-14', 'PE · festivo en lunes', '2026-03-23', false],
 		['CP-F2-15', 'PE · Jueves Santo', '2026-04-02', false],
-		['CP-F2-16', 'VL · viernes antes de un festivo', '2026-01-02', true]
+		['CP-F2-16', 'VL · día siguiente a un festivo (viernes 2 de enero)', '2026-01-02', true]
 	])('%s %s (%s)', (_id, _desc, fecha, esperado) => {
 		expect(esDiaHabil(fecha)).toBe(esperado);
 	});
