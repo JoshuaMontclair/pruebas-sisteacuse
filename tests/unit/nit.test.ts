@@ -50,10 +50,12 @@ describe('F1 · calcularDV: módulo 11 de la DIAN', () => {
 		expect(calcularDV('800.197.268')).toBeNull();
 	});
 
-	it('CP-F1-21 coincide con una implementación independiente del módulo 11 en 2 000 NIT de 6 a 10 dígitos', () => {
-		// Oráculo escrito por el equipo a partir de la regla publicada por la DIAN
-		// (RN-02), sin mirar el código de SisteAcuse: pesos como texto, recorrido
-		// de izquierda a derecha y residuo calculado aparte.
+	it('CP-F1-21 coincide con una segunda implementación del módulo 11 en 2 000 NIT de 6 a 10 dígitos', () => {
+		// Segunda implementación, escrita a partir de la regla publicada por la DIAN
+		// (RN-02) por el mismo equipo. No es independiente por su autor, sino por el
+		// camino de cálculo: pesos como texto, recorrido de izquierda a derecha y
+		// residuo calculado aparte, así que un error de índice o de peso en el
+		// código no se repetiría aquí.
 		const PESOS_DIAN = '71 67 59 53 47 43 41 37 29 23 19 17 13 7 3'.split(' ').map(Number);
 		const oraculo = (nit: string) => {
 			const pesos = PESOS_DIAN.slice(PESOS_DIAN.length - nit.length);
